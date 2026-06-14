@@ -320,4 +320,5 @@ void Application::Update()
 int main()
 {
 	Application app;
+	return 0;
 }
