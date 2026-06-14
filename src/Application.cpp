@@ -31,9 +31,9 @@ Application::Application()
 {
 	GLFWInit();
 	GLFWCreateWindow();
-	
+
 	GLADLoadGL();
-	
+
 	GLFWSetFramebufferSizeCallback();
 	GLFWSetKeyCallback();
 
@@ -101,14 +101,19 @@ void Application::GLFWSetKeyCallback()
 	glfwSetKeyCallback(m_Window,
 		[](GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
-			spdlog::info("GL: Key action | Key: {:#x}, Scancode: {:#x}, Action: {}, Mods: {:#x}", key, scancode, action, mods);
-
-			if (action == GLFW_PRESS)
+			bool isHandlable = true;
+			if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
 			{
-				if (key == GLFW_KEY_ESCAPE)
-				{
-					glfwSetWindowShouldClose(window, true);
-				}
+				glfwSetWindowShouldClose(window, true);
+			}
+			else
+			{
+				isHandlable = false;
+			}
+
+			if (isHandlable)
+			{
+				spdlog::info("GL: Key action | Key: {:#x}, Scancode: {:#x}, Action: {}, Mods: {:#x}", key, scancode, action, mods);
 			}
 		});
 }
