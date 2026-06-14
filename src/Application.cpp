@@ -296,19 +296,20 @@ void Application::Update()
 	glDeleteShader(vertexShader);
 	glDeleteShader(circleFragmentShader);
 
+	GLint iResolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
 	while (!glfwWindowShouldClose(m_Window))
 	{
+		int fbW, fbH;
+		glfwGetFramebufferSize(m_Window, &fbW, &fbH);
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glBindVertexArray(vao);
 		glUseProgram(shaderProgram);
 
-		int w, h;
-		glfwGetFramebufferSize(m_Window, &w, &h);
-
-		glm::vec3 resolution(w, h, 0);
-		glUniform3fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, glm::value_ptr(resolution));
+		glm::vec3 resolution(fbW, fbH, 0);
+		glUniform3fv(iResolutionLocation, 1, glm::value_ptr(resolution));
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
