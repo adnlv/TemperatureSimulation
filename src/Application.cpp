@@ -19,6 +19,7 @@ private:
 	void GLFWTerminate() noexcept;
 	void GLFWCreateWindow();
 	void GLFWDestroyWindow() noexcept;
+	void GLFWSetFramebufferSizeCallback();
 
 	void GLADLoadGL();
 
@@ -30,7 +31,8 @@ Application::Application()
 	GLFWInit();
 	GLFWCreateWindow();
 	GLADLoadGL();
-	
+	GLFWSetFramebufferSizeCallback();
+
 	Update();
 }
 
@@ -78,6 +80,15 @@ void Application::GLFWDestroyWindow() noexcept
 {
 	glfwDestroyWindow(m_Window);
 	spdlog::info("GLFW: Window destroyed");
+}
+
+void Application::GLFWSetFramebufferSizeCallback()
+{
+	glfwSetFramebufferSizeCallback(m_Window,
+		[](GLFWwindow* window, int width, int height)
+		{
+			glViewport(0, 0, width, height);
+		});
 }
 
 void Application::GLADLoadGL()
