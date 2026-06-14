@@ -88,6 +88,7 @@ void Application::GLFWSetFramebufferSizeCallback()
 		[](GLFWwindow* window, int width, int height)
 		{
 			glViewport(0, 0, width, height);
+			spdlog::info("GL: Viewport resolution changed | Width: {} px, Height: {} px", width, height);
 		});
 }
 
