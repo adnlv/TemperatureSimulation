@@ -71,6 +71,7 @@ void Application::GLFWCreateWindow()
 	spdlog::info("GLFW: Window created");
 
 	glfwMakeContextCurrent(m_Window);
+	glfwSetWindowUserPointer(m_Window, this);
 }
 
 void Application::GLFWDestroyWindow() noexcept
