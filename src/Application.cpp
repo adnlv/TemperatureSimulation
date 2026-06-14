@@ -276,7 +276,7 @@ void Application::Update()
 		"{\n"
 		"vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
 		"float thickness = 0.5;\n"
-		"float fade = 0.005;\n"
+		"float fade = 4 / iResolution.y;\n"
 		"vec2 uv = (gl_FragCoord.xy - iResolution.xy * 0.5) / min(iResolution.x, iResolution.y) * 2.0;\n"
 		"float distance = 1.0 - length(uv);\n"
 		"vec3 color = vec3(smoothstep(0.0, fade, distance));\n"
