@@ -20,6 +20,7 @@ private:
 	void GLFWCreateWindow();
 	void GLFWDestroyWindow() noexcept;
 	void GLFWSetFramebufferSizeCallback();
+	void GLFWSetKeyCallback();
 
 	void GLADLoadGL();
 
@@ -30,8 +31,11 @@ Application::Application()
 {
 	GLFWInit();
 	GLFWCreateWindow();
+	
 	GLADLoadGL();
+	
 	GLFWSetFramebufferSizeCallback();
+	GLFWSetKeyCallback();
 
 	Update();
 }
@@ -89,6 +93,23 @@ void Application::GLFWSetFramebufferSizeCallback()
 		{
 			glViewport(0, 0, width, height);
 			spdlog::info("GL: Viewport resolution changed | Width: {} px, Height: {} px", width, height);
+		});
+}
+
+void Application::GLFWSetKeyCallback()
+{
+	glfwSetKeyCallback(m_Window,
+		[](GLFWwindow* window, int key, int scancode, int action, int mods)
+		{
+			spdlog::info("GL: Key action | Key: {:#x}, Scancode: {:#x}, Action: {}, Mods: {:#x}", key, scancode, action, mods);
+
+			if (action == GLFW_PRESS)
+			{
+				if (key == GLFW_KEY_ESCAPE)
+				{
+					glfwSetWindowShouldClose(window, true);
+				}
+			}
 		});
 }
 
