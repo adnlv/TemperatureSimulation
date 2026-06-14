@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 
 class Application
@@ -228,13 +229,16 @@ void Application::GLSetDebugOutputCallback()
 void Application::Update()
 {
 	std::vector<float> vertices{
-		0.0, 0.5, 0.0,
-		0.5, -0.5, 0.0,
-		-0.5, -0.5, 0.0,
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		1.0f,  1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f,
+		1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f
 	};
 
 	GLuint vao;
-	glCreateVertexArrays(1, &vao);
+	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
 	GLuint vbo;
@@ -255,22 +259,42 @@ void Application::Update()
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
 
-	const char* fragmentShaderSource = "#version 460 core\n"
-		"out vec4 FragColor;\n"
+	//const char* fragmentShaderSource = "#version 460 core\n"
+	//	"out vec4 FragColor;\n"
+	//	"void main()\n"
+	//	"{\n"
+	//	"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+	//	"}\0";
+	//GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	//glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	//glCompileShader(fragmentShader);
+
+	const char* circleShaderSource = "#version 460 core\n"
+		"out vec4 fragColor;\n"
+		"uniform vec3 iResolution;\n"
 		"void main()\n"
 		"{\n"
-		"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-		"}\0";
-	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
+		"vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
+		"float thickness = 0.5;\n"
+		"float fade = 0.005;\n"
+		"vec2 uv = (gl_FragCoord.xy - iResolution.xy * 0.5) / min(iResolution.x, iResolution.y) * 2.0;\n"
+		"float distance = 1.0 - length(uv);\n"
+		"vec3 color = vec3(smoothstep(0.0, fade, distance));\n"
+		"color *= vec3(smoothstep(thickness + fade, thickness, distance));\n"
+		"fragColor = vec4(color, 1.0);\n"
+		"fragColor.rgb *= circleColor;\n"
+		"}\0"
+		;
+	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(circleFragmentShader, 1, &circleShaderSource, NULL);
+	glCompileShader(circleFragmentShader);
 
 	GLuint shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
+	glAttachShader(shaderProgram, circleFragmentShader);
 	glLinkProgram(shaderProgram);
 	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	glDeleteShader(circleFragmentShader);
 
 	while (!glfwWindowShouldClose(m_Window))
 	{
@@ -279,7 +303,14 @@ void Application::Update()
 
 		glBindVertexArray(vao);
 		glUseProgram(shaderProgram);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		int w, h;
+		glfwGetFramebufferSize(m_Window, &w, &h);
+
+		glm::vec3 resolution(w, h, 0);
+		glUniform3fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, glm::value_ptr(resolution));
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glfwSwapBuffers(m_Window);
 		glfwPollEvents();
