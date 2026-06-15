@@ -231,12 +231,11 @@ void Application::Update()
 	constexpr float circleRadius = 0.25f;
 
 	std::vector<float> vertices{
-		circleRadius,  circleRadius, 0.0f,  // top right
-		circleRadius, -circleRadius, 0.0f,  // bottom right
-		-circleRadius, -circleRadius, 0.0f,  // bottom left
-		-circleRadius,  circleRadius, 0.0f   // top left 
+		1.0f,  1.0f, 0.0f,  // top right
+		1.0f, -1.0f, 0.0f,  // bottom right
+		-1.0f, -1.0f, 0.0f,  // bottom left
+		-1.0f,  1.0f, 0.0f   // top left 
 	};
-
 	std::vector<int> indices{
 		0, 1, 3,
 		1, 2, 3
@@ -262,15 +261,19 @@ void Application::Update()
 	const char* vertexShaderSource = "#version 460 core\n"
 		"layout (location = 0) in vec3 aPos;\n"
 		"out vec2 localPos;\n"
-		"uniform vec3 iResolution;\n" // Access the resolution passed from C++
+		"uniform vec3 iResolution;\n"
+		"uniform float uRadius;\n" // Control the quad's actual size on screen here!
 		"void main()\n"
 		"{\n"
-		"   // Calculate aspect ratio (height divided by width)\n"
 		"   float aspectRatio = iResolution.y / iResolution.x;\n"
-		"   // Multiply the X position by the aspect ratio to counter the stretching\n"
-		"   gl_Position = vec4(aPos.x * aspectRatio, aPos.y, aPos.z, 1.0);\n"
-		"   // Pass the UNMODIFIED coordinate to the fragment shader\n"
-		"   // so your circle remains perfectly centered and scaled inside the quad\n"
+		"   \n"
+		"   // 1. Scale the raw quad by your radius\n"
+		"   vec2 scaledPos = aPos.xy * uRadius;\n"
+		"   \n"
+		"   // 2. Apply aspect ratio so the scaled quad remains a perfect square\n"
+		"   gl_Position = vec4(scaledPos.x * aspectRatio, scaledPos.y, aPos.z, 1.0);\n"
+		"   \n"
+		"   // Pass the UNTOUCHED -1.0 to 1.0 coordinates to the fragment shader\n"
 		"   localPos = aPos.xy;\n"
 		"}\0";
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -278,19 +281,23 @@ void Application::Update()
 	glCompileShader(vertexShader);
 
 	const char* circleShaderSource = "#version 460 core\n"
-		"in vec2 localPos;\n" // Receive the local position from vertex shader
+		"in vec2 localPos;\n"
 		"out vec4 fragColor;\n"
-		"uniform vec3 iResolution;\n" // Still useful to calculate anti-aliasing
-		"uniform float uRadius;\n"    // Control the size of the circle!
+		"uniform vec3 iResolution;\n"
+		"uniform float uRadius;\n" // We still need this for the anti-aliasing math
 		"void main()\n"
 		"{\n"
 		"   vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
-		"   // Fade calculation to keep edges smooth regardless of window size\n"
-		"   float fade = 2.0 / iResolution.y;\n"
-		"   // Distance from the center of the quad (0, 0)\n"
+		"   \n"
+		"   // Calculate the fade based on the actual screen size of the circle\n"
+		"   // This ensures edges stay perfectly crisp whether the circle is huge or tiny\n"
+		"   float fade = 2.0 / (iResolution.y * uRadius);\n"
+		"   \n"
 		"   float distance = length(localPos);\n"
-		"   // Draw the circle using the uniform radius\n"
-		"   float circle = 1.0 - smoothstep(uRadius - fade, uRadius, distance);\n"
+		"   \n"
+		"   // The local space is -1 to 1, so a radius of 1.0 perfectly touches the edges of the quad!\n"
+		"   float circle = 1.0 - smoothstep(1.0 - fade, 1.0, distance);\n"
+		"   \n"
 		"   fragColor = vec4(circleColor * circle, 1.0);\n"
 		"}\0";
 	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
