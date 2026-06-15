@@ -262,18 +262,17 @@ void Application::Update()
 		"layout (location = 0) in vec3 aPos;\n"
 		"out vec2 localPos;\n"
 		"uniform vec3 iResolution;\n"
-		"uniform float uRadius;\n" // Control the quad's actual size on screen here!
+		"uniform float uRadius;\n"
+		"uniform vec2 uPosition;\n" // <-- ADD THIS: Offset in screen space (-1.0 to 1.0)
 		"void main()\n"
 		"{\n"
 		"   float aspectRatio = iResolution.y / iResolution.x;\n"
-		"   \n"
-		"   // 1. Scale the raw quad by your radius\n"
 		"   vec2 scaledPos = aPos.xy * uRadius;\n"
 		"   \n"
-		"   // 2. Apply aspect ratio so the scaled quad remains a perfect square\n"
-		"   gl_Position = vec4(scaledPos.x * aspectRatio, scaledPos.y, aPos.z, 1.0);\n"
+		"   // Apply aspect ratio to the scale, then add the position offset\n"
+		"   vec2 finalPos = vec2(scaledPos.x * aspectRatio, scaledPos.y) + uPosition;\n"
 		"   \n"
-		"   // Pass the UNTOUCHED -1.0 to 1.0 coordinates to the fragment shader\n"
+		"   gl_Position = vec4(finalPos.x, finalPos.y, aPos.z, 1.0);\n"
 		"   localPos = aPos.xy;\n"
 		"}\0";
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -313,6 +312,7 @@ void Application::Update()
 
 	GLint resolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
 	GLint radiusLocation = glGetUniformLocation(shaderProgram, "uRadius");
+	GLint positionLocation = glGetUniformLocation(shaderProgram, "uPosition");
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		int fbW, fbH;
@@ -328,6 +328,10 @@ void Application::Update()
 		glm::vec3 resolution(fbW, fbH, 0);
 		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
 		glUniform1f(radiusLocation, circleRadius);
+
+		float time = glfwGetTime();
+		glm::vec2 pos(sin(time) * 0.5f, cos(time) * 0.5f);
+		glUniform2fv(positionLocation, 1, glm::value_ptr(pos));
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
