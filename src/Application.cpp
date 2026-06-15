@@ -133,6 +133,9 @@ void Application::GLADLoadGL()
 	}
 	spdlog::info("GLAD: GL loaded");
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	int frameBufferWidth;
 	int frameBufferHeight;
 	glfwGetFramebufferSize(m_Window, &frameBufferWidth, &frameBufferHeight);
@@ -283,21 +286,18 @@ void Application::Update()
 		"in vec2 localPos;\n"
 		"out vec4 fragColor;\n"
 		"uniform vec3 iResolution;\n"
-		"uniform float uRadius;\n" // We still need this for the anti-aliasing math
+		"uniform float uRadius;\n"
 		"void main()\n"
 		"{\n"
 		"   vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
-		"   \n"
-		"   // Calculate the fade based on the actual screen size of the circle\n"
-		"   // This ensures edges stay perfectly crisp whether the circle is huge or tiny\n"
 		"   float fade = 2.0 / (iResolution.y * uRadius);\n"
-		"   \n"
 		"   float distance = length(localPos);\n"
 		"   \n"
-		"   // The local space is -1 to 1, so a radius of 1.0 perfectly touches the edges of the quad!\n"
-		"   float circle = 1.0 - smoothstep(1.0 - fade, 1.0, distance);\n"
+		"   // This value is 1.0 inside the circle, and 0.0 outside\n"
+		"   float circleAlpha = 1.0 - smoothstep(1.0 - fade, 1.0, distance);\n"
 		"   \n"
-		"   fragColor = vec4(circleColor * circle, 1.0);\n"
+		"   // Use the color for RGB, and the circleAlpha for the transparency!\n"
+		"   fragColor = vec4(circleColor, circleAlpha);\n"
 		"}\0";
 	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(circleFragmentShader, 1, &circleShaderSource, NULL);
