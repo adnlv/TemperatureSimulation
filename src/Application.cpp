@@ -261,11 +261,17 @@ void Application::Update()
 
 	const char* vertexShaderSource = "#version 460 core\n"
 		"layout (location = 0) in vec3 aPos;\n"
-		"out vec2 localPos;\n" // Output variable to the fragment shader
+		"out vec2 localPos;\n"
+		"uniform vec3 iResolution;\n" // Access the resolution passed from C++
 		"void main()\n"
 		"{\n"
-		"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-		"   localPos = aPos.xy;\n" // Pass the local vertex position
+		"   // Calculate aspect ratio (height divided by width)\n"
+		"   float aspectRatio = iResolution.y / iResolution.x;\n"
+		"   // Multiply the X position by the aspect ratio to counter the stretching\n"
+		"   gl_Position = vec4(aPos.x * aspectRatio, aPos.y, aPos.z, 1.0);\n"
+		"   // Pass the UNMODIFIED coordinate to the fragment shader\n"
+		"   // so your circle remains perfectly centered and scaled inside the quad\n"
+		"   localPos = aPos.xy;\n"
 		"}\0";
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
