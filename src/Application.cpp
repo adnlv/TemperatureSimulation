@@ -231,19 +231,18 @@ void Application::GLSetDebugOutputCallback()
 
 void Application::Update()
 {
-	// A simple struct to define what makes a circle unique
 	struct Circle {
 		glm::vec2 position;
 		float radius;
 		float speed;
+		glm::vec3 color;
 	};
 
-	// Create a list of independent circles
 	std::vector<Circle> circles = {
-		{{ 0.0f,  0.0f}, 0.3f, 1.0f},  // Center, large
-		{{-0.6f,  0.5f}, 0.15f, 1.3f}, // Top left, small
-		{{ 0.6f,  0.5f}, 0.15f, 1.6f}, // Top right, small
-		{{ 0.0f, -0.6f}, 0.2f, 1.9f}   // Bottom, medium
+		{{ 0.0f,  0.0f}, 0.3f,  1.0f, {0.85f, 0.35f, 0.20f}}, // Orange
+		{{-0.6f,  0.5f}, 0.15f, 2.5f, {0.20f, 0.85f, 0.35f}}, // Green
+		{{ 0.6f,  0.5f}, 0.15f, 1.5f, {0.20f, 0.35f, 0.85f}}, // Blue
+		{{ 0.0f, -0.6f}, 0.2f,  3.0f, {0.85f, 0.85f, 0.20f}}  // Yellow
 	};
 
 	std::vector<float> vertices{
@@ -300,17 +299,15 @@ void Application::Update()
 		"out vec4 fragColor;\n"
 		"uniform vec3 iResolution;\n"
 		"uniform float uRadius;\n"
+		"uniform vec3 uColor;\n"
 		"void main()\n"
 		"{\n"
-		"   vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
 		"   float fade = 2.0 / (iResolution.y * uRadius);\n"
 		"   float distance = length(localPos);\n"
-		"   \n"
-		"   // This value is 1.0 inside the circle, and 0.0 outside\n"
 		"   float circleAlpha = 1.0 - smoothstep(1.0 - fade, 1.0, distance);\n"
 		"   \n"
-		"   // Use the color for RGB, and the circleAlpha for the transparency!\n"
-		"   fragColor = vec4(circleColor, circleAlpha);\n"
+		"   // Use the dynamic uColor instead of the hardcoded one\n"
+		"   fragColor = vec4(uColor, circleAlpha);\n"
 		"}\0";
 	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(circleFragmentShader, 1, &circleShaderSource, NULL);
@@ -326,6 +323,7 @@ void Application::Update()
 	GLint resolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
 	GLint radiusLocation = glGetUniformLocation(shaderProgram, "uRadius");
 	GLint positionLocation = glGetUniformLocation(shaderProgram, "uPosition");
+	GLint colorLocation = glGetUniformLocation(shaderProgram, "uColor");
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		int fbW, fbH;
@@ -340,18 +338,17 @@ void Application::Update()
 
 		glm::vec3 resolution(fbW, fbH, 0);
 		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
-		
-		float time = glfwGetTime();
+
+		float time = static_cast<float>(glfwGetTime());
 		for (Circle& circle : circles)
 		{
 			circle.position.x = sin(time * circle.speed) * (1.0f - circle.radius);
 			circle.position.y = cos(time * circle.speed) * (1.0f - circle.radius);
 
-			// Update the state for THIS specific circle
-			glUniform2f(positionLocation, circle.position.x, circle.position.y);
+			glUniform2fv(positionLocation, 1, glm::value_ptr(circle.position));
+			glUniform3fv(colorLocation, 1, glm::value_ptr(circle.color));
 			glUniform1f(radiusLocation, circle.radius);
 
-			// Tell OpenGL to draw the quad at the new position/scale
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
 
