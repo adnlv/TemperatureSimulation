@@ -228,13 +228,18 @@ void Application::GLSetDebugOutputCallback()
 
 void Application::Update()
 {
+	constexpr float circleRadius = 0.25f;
+
 	std::vector<float> vertices{
-		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		1.0f,  1.0f, 0.0f,
-		-1.0f, -1.0f, 0.0f,
-		1.0f,  1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f
+		circleRadius,  circleRadius, 0.0f,  // top right
+		circleRadius, -circleRadius, 0.0f,  // bottom right
+		-circleRadius, -circleRadius, 0.0f,  // bottom left
+		-circleRadius,  circleRadius, 0.0f   // top left 
+	};
+
+	std::vector<int> indices{
+		0, 1, 3,
+		1, 2, 3
 	};
 
 	GLuint vao;
@@ -249,42 +254,39 @@ void Application::Update()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
 	glEnableVertexAttribArray(0);
 
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices.at(0)), indices.data(), GL_STATIC_DRAW);
+
 	const char* vertexShaderSource = "#version 460 core\n"
 		"layout (location = 0) in vec3 aPos;\n"
+		"out vec2 localPos;\n" // Output variable to the fragment shader
 		"void main()\n"
 		"{\n"
 		"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+		"   localPos = aPos.xy;\n" // Pass the local vertex position
 		"}\0";
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
 
-	//const char* fragmentShaderSource = "#version 460 core\n"
-	//	"out vec4 FragColor;\n"
-	//	"void main()\n"
-	//	"{\n"
-	//	"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-	//	"}\0";
-	//GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	//glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	//glCompileShader(fragmentShader);
-
 	const char* circleShaderSource = "#version 460 core\n"
+		"in vec2 localPos;\n" // Receive the local position from vertex shader
 		"out vec4 fragColor;\n"
-		"uniform vec3 iResolution;\n"
+		"uniform vec3 iResolution;\n" // Still useful to calculate anti-aliasing
+		"uniform float uRadius;\n"    // Control the size of the circle!
 		"void main()\n"
 		"{\n"
-		"vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
-		"float thickness = 0.5;\n"
-		"float fade = 4 / iResolution.y;\n"
-		"vec2 uv = (gl_FragCoord.xy - iResolution.xy * 0.5) / min(iResolution.x, iResolution.y) * 2.0;\n"
-		"float distance = 1.0 - length(uv);\n"
-		"vec3 color = vec3(smoothstep(0.0, fade, distance));\n"
-		"color *= vec3(smoothstep(thickness + fade, thickness, distance));\n"
-		"fragColor = vec4(color, 1.0);\n"
-		"fragColor.rgb *= circleColor;\n"
-		"}\0"
-		;
+		"   vec3 circleColor = vec3(0.85, 0.35, 0.2);\n"
+		"   // Fade calculation to keep edges smooth regardless of window size\n"
+		"   float fade = 2.0 / iResolution.y;\n"
+		"   // Distance from the center of the quad (0, 0)\n"
+		"   float distance = length(localPos);\n"
+		"   // Draw the circle using the uniform radius\n"
+		"   float circle = 1.0 - smoothstep(uRadius - fade, uRadius, distance);\n"
+		"   fragColor = vec4(circleColor * circle, 1.0);\n"
+		"}\0";
 	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(circleFragmentShader, 1, &circleShaderSource, NULL);
 	glCompileShader(circleFragmentShader);
@@ -296,7 +298,8 @@ void Application::Update()
 	glDeleteShader(vertexShader);
 	glDeleteShader(circleFragmentShader);
 
-	GLint iResolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
+	GLint resolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
+	GLint radiusLocation = glGetUniformLocation(shaderProgram, "uRadius");
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		int fbW, fbH;
@@ -306,12 +309,14 @@ void Application::Update()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glUseProgram(shaderProgram);
 
 		glm::vec3 resolution(fbW, fbH, 0);
-		glUniform3fv(iResolutionLocation, 1, glm::value_ptr(resolution));
+		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
+		glUniform1f(radiusLocation, circleRadius);
 
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(m_Window);
 		glfwPollEvents();
