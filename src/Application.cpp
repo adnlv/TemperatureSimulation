@@ -330,7 +330,7 @@ void Application::Update()
 		glUniform1f(radiusLocation, circleRadius);
 
 		float time = glfwGetTime();
-		glm::vec2 pos(sin(time) * 0.5f, cos(time) * 0.5f);
+		glm::vec2 pos(sin(time) * (1.0f - circleRadius), cos(time) * (1.0f - circleRadius));
 		glUniform2fv(positionLocation, 1, glm::value_ptr(pos));
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
