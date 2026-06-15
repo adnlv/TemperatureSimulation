@@ -234,10 +234,10 @@ void Application::Update()
 	constexpr float circleRadius = 0.25f;
 
 	std::vector<float> vertices{
-		1.0f,  1.0f, 0.0f,  // top right
-		1.0f, -1.0f, 0.0f,  // bottom right
-		-1.0f, -1.0f, 0.0f,  // bottom left
-		-1.0f,  1.0f, 0.0f   // top left 
+		1.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f
 	};
 	std::vector<int> indices{
 		0, 1, 3,
@@ -266,7 +266,7 @@ void Application::Update()
 		"out vec2 localPos;\n"
 		"uniform vec3 iResolution;\n"
 		"uniform float uRadius;\n"
-		"uniform vec2 uPosition;\n" // <-- ADD THIS: Offset in screen space (-1.0 to 1.0)
+		"uniform vec2 uPosition;\n"
 		"void main()\n"
 		"{\n"
 		"   float aspectRatio = iResolution.y / iResolution.x;\n"
