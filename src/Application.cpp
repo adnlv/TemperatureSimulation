@@ -231,7 +231,20 @@ void Application::GLSetDebugOutputCallback()
 
 void Application::Update()
 {
-	constexpr float circleRadius = 0.25f;
+	// A simple struct to define what makes a circle unique
+	struct Circle {
+		glm::vec2 position;
+		float radius;
+		float speed;
+	};
+
+	// Create a list of independent circles
+	std::vector<Circle> circles = {
+		{{ 0.0f,  0.0f}, 0.3f, 1.0f},  // Center, large
+		{{-0.6f,  0.5f}, 0.15f, 1.3f}, // Top left, small
+		{{ 0.6f,  0.5f}, 0.15f, 1.6f}, // Top right, small
+		{{ 0.0f, -0.6f}, 0.2f, 1.9f}   // Bottom, medium
+	};
 
 	std::vector<float> vertices{
 		1.0f,  1.0f, 0.0f,
@@ -327,13 +340,20 @@ void Application::Update()
 
 		glm::vec3 resolution(fbW, fbH, 0);
 		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
-		glUniform1f(radiusLocation, circleRadius);
-
+		
 		float time = glfwGetTime();
-		glm::vec2 pos(sin(time) * (1.0f - circleRadius), cos(time) * (1.0f - circleRadius));
-		glUniform2fv(positionLocation, 1, glm::value_ptr(pos));
+		for (Circle& circle : circles)
+		{
+			circle.position.x = sin(time * circle.speed) * (1.0f - circle.radius);
+			circle.position.y = cos(time * circle.speed) * (1.0f - circle.radius);
 
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			// Update the state for THIS specific circle
+			glUniform2f(positionLocation, circle.position.x, circle.position.y);
+			glUniform1f(radiusLocation, circle.radius);
+
+			// Tell OpenGL to draw the quad at the new position/scale
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
 
 		glfwSwapBuffers(m_Window);
 		glfwPollEvents();
