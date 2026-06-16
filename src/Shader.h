@@ -3,6 +3,9 @@
 #include <string_view>
 #include <exception>
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <glad/gl.h>
 
 enum class ShaderType
@@ -25,6 +28,8 @@ public:
 
 	GLuint Id() const noexcept;
 	ShaderType Type() const noexcept;
+
+	static std::string LoadFile(const std::filesystem::path& filepath);
 
 private:
 	GLuint m_Id;
@@ -93,4 +98,24 @@ inline GLuint Shader::Id() const noexcept
 inline ShaderType Shader::Type() const noexcept
 {
 	return m_Type;
+}
+
+inline std::string Shader::LoadFile(const std::filesystem::path& filepath)
+{
+	std::ifstream file;
+	file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	
+	try
+	{
+		file.open(filepath);
+		
+		std::stringstream source;
+		source << file.rdbuf();
+		
+		return source.str();
+	}
+	catch (const std::ifstream::failure& e)
+	{
+		throw std::runtime_error("GL: Failed to load shader source from " + filepath.string() + ": " + e.what());
+	}
 }

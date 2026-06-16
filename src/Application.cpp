@@ -275,40 +275,10 @@ void Application::Update()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices.at(0)), indices.data(), GL_STATIC_DRAW);
 
-	const char* vertexShaderSource = "#version 460 core\n"
-		"layout (location = 0) in vec3 aPos;\n"
-		"out vec2 localPos;\n"
-		"uniform vec3 iResolution;\n"
-		"uniform float uRadius;\n"
-		"uniform vec2 uPosition;\n"
-		"void main()\n"
-		"{\n"
-		"   float aspectRatio = iResolution.y / iResolution.x;\n"
-		"   vec2 scaledPos = aPos.xy * uRadius;\n"
-		"   \n"
-		"   // Apply aspect ratio to the scale, then add the position offset\n"
-		"   vec2 finalPos = vec2(scaledPos.x * aspectRatio, scaledPos.y) + uPosition;\n"
-		"   \n"
-		"   gl_Position = vec4(finalPos.x, finalPos.y, aPos.z, 1.0);\n"
-		"   localPos = aPos.xy;\n"
-		"}\0";
+	auto vertexShaderSource = Shader::LoadFile("assets/shaders/circle.vert");
 	Shader vertexShader(ShaderType::VertexShader, vertexShaderSource);
 
-	const char* fragmentShaderSource = "#version 460 core\n"
-		"in vec2 localPos;\n"
-		"out vec4 fragColor;\n"
-		"uniform vec3 iResolution;\n"
-		"uniform float uRadius;\n"
-		"uniform vec3 uColor;\n"
-		"void main()\n"
-		"{\n"
-		"   float fade = 2.0 / (iResolution.y * uRadius);\n"
-		"   float distance = length(localPos);\n"
-		"   float circleAlpha = 1.0 - smoothstep(1.0 - fade, 1.0, distance);\n"
-		"   \n"
-		"   // Use the dynamic uColor instead of the hardcoded one\n"
-		"   fragColor = vec4(uColor, circleAlpha);\n"
-		"}\0";
+	auto fragmentShaderSource = Shader::LoadFile("assets/shaders/circle.frag");
 	Shader fragmentShader(ShaderType::FragmentShader, fragmentShaderSource);
 
 	GLuint shaderProgram = glCreateProgram();
