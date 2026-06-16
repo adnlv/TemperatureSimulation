@@ -89,6 +89,7 @@ inline Shader& Shader::operator=(Shader&& other) noexcept
 	m_Type = other.m_Type;
 
 	other.m_Id = 0;
+	return *this;
 }
 
 inline GLuint Shader::Id() const noexcept
@@ -195,6 +196,7 @@ inline ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) noexcept
 	m_Id = other.m_Id;
 
 	other.m_Id = 0;
+	return *this;
 }
 
 inline GLuint ShaderProgram::Id() const noexcept
