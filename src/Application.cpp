@@ -281,17 +281,12 @@ void Application::Update()
 	auto fragmentShaderSource = Shader::LoadFile("assets/shaders/circle.frag");
 	Shader fragmentShader(ShaderType::FragmentShader, fragmentShaderSource);
 
-	GLuint shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader.Id());
-	glAttachShader(shaderProgram, fragmentShader.Id());
-	glLinkProgram(shaderProgram);
-	glDetachShader(shaderProgram, vertexShader.Id());
-	glDetachShader(shaderProgram, fragmentShader.Id());
+	ShaderProgram program(vertexShader, fragmentShader);
 
-	GLint resolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
-	GLint radiusLocation = glGetUniformLocation(shaderProgram, "uRadius");
-	GLint positionLocation = glGetUniformLocation(shaderProgram, "uPosition");
-	GLint colorLocation = glGetUniformLocation(shaderProgram, "uColor");
+	GLint resolutionLocation = program.GetUniformLocation("iResolution");
+	GLint radiusLocation = program.GetUniformLocation("uRadius");
+	GLint positionLocation = program.GetUniformLocation("uPosition");
+	GLint colorLocation = program.GetUniformLocation("uColor");
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		int fbW, fbH;
@@ -302,7 +297,7 @@ void Application::Update()
 
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glUseProgram(shaderProgram);
+		program.Use();
 
 		glm::vec3 resolution(fbW, fbH, 0);
 		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
