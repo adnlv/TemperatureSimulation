@@ -234,10 +234,10 @@ void Application::GLSetDebugOutputCallback()
 void Application::Update()
 {
 	struct Circle {
-		glm::vec2 position;
-		float radius;
-		float speed;
-		glm::vec3 color;
+		glm::vec2 Position;
+		float Radius;
+		float Speed;
+		glm::vec3 Color;
 	};
 
 	std::vector<Circle> circles = {
@@ -305,12 +305,12 @@ void Application::Update()
 		float time = static_cast<float>(glfwGetTime());
 		for (Circle& circle : circles)
 		{
-			circle.position.x = sin(time * circle.speed) * (1.0f - circle.radius);
-			circle.position.y = cos(time * circle.speed) * (1.0f - circle.radius);
+			circle.Position.x = sin(time * circle.Speed) * (1.0f - circle.Radius);
+			circle.Position.y = cos(time * circle.Speed) * (1.0f - circle.Radius);
 
-			glUniform2fv(positionLocation, 1, glm::value_ptr(circle.position));
-			glUniform3fv(colorLocation, 1, glm::value_ptr(circle.color));
-			glUniform1f(radiusLocation, circle.radius);
+			glUniform2fv(positionLocation, 1, glm::value_ptr(circle.Position));
+			glUniform3fv(colorLocation, 1, glm::value_ptr(circle.Color));
+			glUniform1f(radiusLocation, circle.Radius);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
