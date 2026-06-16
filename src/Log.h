@@ -16,6 +16,8 @@ class Log
 public:
 	static const std::shared_ptr<spdlog::logger>& SPDLogger() noexcept;
 
+	static void Init() noexcept;
+
 	template<typename... Args>
 	static void Message(LogLevel level, spdlog::format_string_t<Args...> fmt, Args&&... args)
 	{
@@ -51,24 +53,28 @@ public:
 	{
 		SPDLogger()->error(fmt, std::forward<Args>(args)...);
 	}
+
+private:
+	static std::shared_ptr<spdlog::logger> s_Logger;
 };
+
+inline std::shared_ptr<spdlog::logger> Log::s_Logger;
 
 inline const std::shared_ptr<spdlog::logger>& Log::SPDLogger() noexcept
 {
-	static std::shared_ptr<spdlog::logger> logger = []()
-		{
-			// %^   -> Start color region (for level)
-			// [%T] -> Time (HH:MM:SS)
-			// [%n] -> Logger name
-			// [%l] -> Log level (info, warn, error, etc.)
-			// %v   -> The actual log message
-			// %$   -> End color region
-			spdlog::set_pattern("%^[%T] [%n] [%l] %v%$");
-			
-			auto coreLogger = spdlog::stdout_color_mt("Core");
-			coreLogger->set_level(spdlog::level::trace);
-			return coreLogger;
-		}();
+	return s_Logger;
+}
 
-	return logger;
+inline void Log::Init() noexcept
+{
+	// %^   -> Start color region (for level)
+	// [%T] -> Time (HH:MM:SS)
+	// [%n] -> Logger name
+	// [%l] -> Log level (info, warn, error, etc.)
+	// %v   -> The actual log message
+	// %$   -> End color region
+	spdlog::set_pattern("%^[%T] [%n] [%l] %v%$");
+
+	s_Logger = spdlog::stdout_color_mt("Core");
+	s_Logger->set_level(spdlog::level::trace);
 }

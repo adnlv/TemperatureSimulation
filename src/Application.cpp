@@ -336,6 +336,7 @@ void Application::Update()
 
 int main()
 {
+	Log::Init();
 	Application app;
 	return 0;
 }
