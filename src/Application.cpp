@@ -9,6 +9,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 
+#include "Shader.h"
+
 class Application
 {
 public:
@@ -290,11 +292,9 @@ void Application::Update()
 		"   gl_Position = vec4(finalPos.x, finalPos.y, aPos.z, 1.0);\n"
 		"   localPos = aPos.xy;\n"
 		"}\0";
-	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
+	Shader vertexShader(ShaderType::VertexShader, vertexShaderSource);
 
-	const char* circleShaderSource = "#version 460 core\n"
+	const char* fragmentShaderSource = "#version 460 core\n"
 		"in vec2 localPos;\n"
 		"out vec4 fragColor;\n"
 		"uniform vec3 iResolution;\n"
@@ -309,16 +309,14 @@ void Application::Update()
 		"   // Use the dynamic uColor instead of the hardcoded one\n"
 		"   fragColor = vec4(uColor, circleAlpha);\n"
 		"}\0";
-	GLuint circleFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(circleFragmentShader, 1, &circleShaderSource, NULL);
-	glCompileShader(circleFragmentShader);
+	Shader fragmentShader(ShaderType::FragmentShader, fragmentShaderSource);
 
 	GLuint shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, circleFragmentShader);
+	glAttachShader(shaderProgram, vertexShader.Id());
+	glAttachShader(shaderProgram, fragmentShader.Id());
 	glLinkProgram(shaderProgram);
-	glDeleteShader(vertexShader);
-	glDeleteShader(circleFragmentShader);
+	glDetachShader(shaderProgram, vertexShader.Id());
+	glDetachShader(shaderProgram, fragmentShader.Id());
 
 	GLint resolutionLocation = glGetUniformLocation(shaderProgram, "iResolution");
 	GLint radiusLocation = glGetUniformLocation(shaderProgram, "uRadius");
