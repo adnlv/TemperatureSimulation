@@ -297,9 +297,9 @@ void Application::Update()
 
 	ShaderProgram program(vertexShader, fragmentShader);
 
-	GLint resolutionLocation = program.GetUniformLocation("iResolution");
-	GLint radiusLocation = program.GetUniformLocation("uRadius");
+	GLint resolutionLocation = program.GetUniformLocation("uResolution");
 	GLint positionLocation = program.GetUniformLocation("uPosition");
+	GLint radiusLocation = program.GetUniformLocation("uRadius");
 	GLint colorLocation = program.GetUniformLocation("uColor");
 	while (!glfwWindowShouldClose(m_Window))
 	{
