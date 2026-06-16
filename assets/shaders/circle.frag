@@ -4,7 +4,7 @@ in vec2 localPos;
 
 out vec4 fragColor;
 
-uniform vec3 uResolution;
+uniform vec2 uResolution;
 uniform float uRadius;
 uniform vec3 uColor;
 

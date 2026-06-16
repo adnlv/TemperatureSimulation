@@ -313,8 +313,8 @@ void Application::Update()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		program.Use();
 
-		glm::vec3 resolution(fbW, fbH, 0);
-		glUniform3fv(resolutionLocation, 1, glm::value_ptr(resolution));
+		glm::vec2 resolution(fbW, fbH);
+		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
 
 		float time = static_cast<float>(glfwGetTime());
 		for (Circle& circle : circles)
