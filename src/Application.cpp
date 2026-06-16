@@ -78,7 +78,7 @@ void Application::GLFWTerminate() noexcept
 
 void Application::GLFWCreateWindow()
 {
-	m_Window = glfwCreateWindow(960, 540, "Termperature Simulation", nullptr, nullptr);
+	m_Window = glfwCreateWindow(960, 540, "Temperature Simulation", nullptr, nullptr);
 	if (m_Window == nullptr)
 	{
 		throw std::runtime_error("GLFW: Window creation failed");
