@@ -25,5 +25,5 @@ FetchContent_MakeAvailable(glm)
 FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.17.0)
 FetchContent_MakeAvailable(spdlog)
 
-add_executable(TemperatureSimulation "src/Application.cpp" "src/Shader.h")
+add_executable(TemperatureSimulation "src/Application.cpp" "src/Log.h" "src/Shader.h")
 target_link_libraries(TemperatureSimulation PRIVATE glfw glad_gl_core_46 glm::glm spdlog::spdlog)

@@ -7,8 +7,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <spdlog/spdlog.h>
 
+#include "Log.h"
 #include "Shader.h"
 
 class Application
@@ -61,7 +61,7 @@ void Application::GLFWInit()
 	{
 		throw std::runtime_error("GLFW: Initialization failed");
 	}
-	spdlog::info("GLFW: Initialized");
+	Log::Info("GLFW: Initialized");
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -73,7 +73,7 @@ void Application::GLFWInit()
 void Application::GLFWTerminate() noexcept
 {
 	glfwTerminate();
-	spdlog::info("GLFW: Terminated");
+	Log::Info("GLFW: Terminated");
 }
 
 void Application::GLFWCreateWindow()
@@ -83,7 +83,7 @@ void Application::GLFWCreateWindow()
 	{
 		throw std::runtime_error("GLFW: Window creation failed");
 	}
-	spdlog::info("GLFW: Window created");
+	Log::Info("GLFW: Window created");
 
 	glfwMakeContextCurrent(m_Window);
 	glfwSetWindowUserPointer(m_Window, this);
@@ -92,7 +92,7 @@ void Application::GLFWCreateWindow()
 void Application::GLFWDestroyWindow() noexcept
 {
 	glfwDestroyWindow(m_Window);
-	spdlog::info("GLFW: Window destroyed");
+	Log::Info("GLFW: Window destroyed");
 }
 
 void Application::GLFWSetFramebufferSizeCallback()
@@ -101,7 +101,7 @@ void Application::GLFWSetFramebufferSizeCallback()
 		[](GLFWwindow* window, int width, int height)
 		{
 			glViewport(0, 0, width, height);
-			spdlog::info("GL: Viewport resolution changed | Width: {} px, Height: {} px", width, height);
+			Log::Info("GL: Viewport resolution changed | Width: {} px, Height: {} px", width, height);
 		});
 }
 
@@ -122,7 +122,7 @@ void Application::GLFWSetKeyCallback()
 
 			if (isHandlable)
 			{
-				spdlog::info("GL: Key action | Key: {:#x}, Scancode: {:#x}, Action: {}, Mods: {:#x}", key, scancode, action, mods);
+				Log::Info("GL: Key action | Key: {:#x}, Scancode: {:#x}, Action: {}, Mods: {:#x}", key, scancode, action, mods);
 			}
 		});
 }
@@ -133,7 +133,7 @@ void Application::GLADLoadGL()
 	{
 		throw std::runtime_error("GLAD: GL loading failed");
 	}
-	spdlog::info("GLAD: GL loaded");
+	Log::Info("GLAD: GL loaded");
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -177,11 +177,9 @@ void Application::GLSetDebugOutputCallback()
 				}
 
 				std::string type_str;
-				spdlog::level::level_enum level = spdlog::level::warn;
 				switch (type) {
 				case GL_DEBUG_TYPE_ERROR:
 					type_str = "ERROR";
-					level = spdlog::level::err;
 					break;
 				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
 					type_str = "DEPRECATED_BEHAVIOR";
@@ -209,6 +207,22 @@ void Application::GLSetDebugOutputCallback()
 					break;
 				}
 
+				LogLevel level;
+				switch (type) {
+				case GL_DEBUG_TYPE_ERROR:
+					level = LogLevel::Err;
+					break;
+				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+				case GL_DEBUG_TYPE_PORTABILITY:
+				case GL_DEBUG_TYPE_PERFORMANCE:
+					level = LogLevel::Warn;
+					break;
+				default:
+					level = LogLevel::Info;
+					break;
+				}
+
 				std::string severity_str;
 				switch (severity) {
 				case GL_DEBUG_SEVERITY_HIGH:
@@ -225,7 +239,7 @@ void Application::GLSetDebugOutputCallback()
 					break;
 				}
 
-				spdlog::log(level, "GL: {} severity {} message from {} ({}): {}", severity_str, type_str, source_str, id, message);
+				Log::Message(level, "GL: {} severity {} message from {} ({}): {}", severity_str, type_str, source_str, id, message);
 			}, nullptr);
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 	}
