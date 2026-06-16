@@ -27,3 +27,4 @@ FetchContent_MakeAvailable(spdlog)
 
 add_executable(TemperatureSimulation "src/Application.cpp" "src/Log.h" "src/Shader.h")
 target_link_libraries(TemperatureSimulation PRIVATE glfw glad_gl_core_46 glm::glm spdlog::spdlog)
+target_compile_definitions(TemperatureSimulation PRIVATE DEV_ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets")

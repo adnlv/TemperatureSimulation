@@ -9,6 +9,10 @@
 #include <type_traits>
 #include <glad/gl.h>
 
+#ifndef DEV_ASSETS_DIR
+#define DEV_ASSETS_DIR "assets"
+#endif
+
 enum class ShaderType
 {
 	VertexShader = GL_VERTEX_SHADER,
@@ -109,7 +113,7 @@ inline std::string Shader::LoadFile(const std::filesystem::path& filepath)
 
 	try
 	{
-		file.open(filepath);
+		file.open(std::filesystem::path(DEV_ASSETS_DIR) / filepath);
 
 		std::stringstream source;
 		source << file.rdbuf();
