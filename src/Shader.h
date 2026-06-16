@@ -138,7 +138,7 @@ public:
 	GLuint Id() const noexcept;
 
 	void Use() const noexcept;
-	GLint GetUniformLocation(const std::string_view name) const noexcept;
+	GLint GetUniformLocation(const std::string& name) const noexcept;
 
 private:
 	GLuint m_Id;
@@ -209,7 +209,7 @@ inline void ShaderProgram::Use() const noexcept
 	glUseProgram(m_Id);
 }
 
-inline GLint ShaderProgram::GetUniformLocation(const std::string_view name) const noexcept
+inline GLint ShaderProgram::GetUniformLocation(const std::string& name) const noexcept
 {
-	return glGetUniformLocation(m_Id, name.data());
+	return glGetUniformLocation(m_Id, name.c_str());
 }
