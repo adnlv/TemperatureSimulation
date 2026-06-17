@@ -168,7 +168,7 @@ inline ShaderProgram::ShaderProgram(const Args & ...shaders)
 
 		std::string infoLog(logLength, '\0');
 		glGetProgramInfoLog(m_Id, logLength, nullptr, infoLog.data());
-		throw std::runtime_error("GL: Shader Program linking failed: " + infoLog);
+		throw std::runtime_error("GL: Shader program linking failed: " + infoLog);
 	}
 
 	(glDetachShader(m_Id, shaders.Id()), ...);
