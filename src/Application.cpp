@@ -289,13 +289,16 @@ void Application::Update()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices.at(0)), indices.data(), GL_STATIC_DRAW);
 
-	auto vertexShaderSource = Shader::LoadFile("shaders/circle.vert");
-	Shader vertexShader(ShaderType::VertexShader, vertexShaderSource);
+	ShaderProgram program = []()
+		{
+			auto vertexShaderSource = Shader::LoadFile("shaders/circle.vert");
+			Shader vertexShader(ShaderType::VertexShader, vertexShaderSource);
 
-	auto fragmentShaderSource = Shader::LoadFile("shaders/circle.frag");
-	Shader fragmentShader(ShaderType::FragmentShader, fragmentShaderSource);
+			auto fragmentShaderSource = Shader::LoadFile("shaders/circle.frag");
+			Shader fragmentShader(ShaderType::FragmentShader, fragmentShaderSource);
 
-	ShaderProgram program(vertexShader, fragmentShader);
+			return ShaderProgram(vertexShader, fragmentShader);
+		}();
 
 	GLint resolutionLocation = program.GetUniformLocation("uResolution");
 	GLint positionLocation = program.GetUniformLocation("uPosition");
