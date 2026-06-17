@@ -10,6 +10,7 @@
 
 #include "Log.h"
 #include "Shader.h"
+#include "Buffers.h"
 
 class Application
 {
@@ -272,17 +273,15 @@ void Application::Update()
 		1, 2, 3
 	};
 
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	VertexArray vertexArray;
 
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices.at(0)), vertices.data(), GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
-	glEnableVertexAttribArray(0);
+	vertexArray.SetAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
+	vertexArray.EnableAttribArray(0);
 
 	GLuint ebo;
 	glGenBuffers(1, &ebo);
@@ -312,7 +311,7 @@ void Application::Update()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glBindVertexArray(vao);
+		vertexArray.Bind();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		program.Use();
 
