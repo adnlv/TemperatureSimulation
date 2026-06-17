@@ -274,19 +274,12 @@ void Application::Update()
 	};
 
 	VertexArray vertexArray;
-
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices.at(0)), vertices.data(), GL_STATIC_DRAW);
-
+	
+	Buffer vertexBuffer(BufferType::ArrayBuffer, vertices.size() * sizeof(vertices.at(0)), vertices.data(), BufferUsage::StaticDraw);
 	vertexArray.SetAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
 	vertexArray.EnableAttribArray(0);
-
-	GLuint ebo;
-	glGenBuffers(1, &ebo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices.at(0)), indices.data(), GL_STATIC_DRAW);
+	
+	Buffer elementArray(BufferType::ElementArrayBuffer, indices.size() * sizeof(indices.at(0)), indices.data(), BufferUsage::StaticDraw);
 
 	ShaderProgram program = []()
 		{
@@ -312,7 +305,7 @@ void Application::Update()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		vertexArray.Bind();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		elementArray.Bind();
 		program.Use();
 
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
