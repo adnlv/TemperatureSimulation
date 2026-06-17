@@ -20,7 +20,7 @@ public:
 	void DisableAttribArray(GLuint index) const noexcept;
 	void SetAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer) const noexcept;
 
-	static void UnbindAll() noexcept;
+	static void Unbind() noexcept;
 
 private:
 	GLuint m_Id = 0;
@@ -88,7 +88,7 @@ inline void VertexArray::SetAttribPointer(GLuint index, GLint size, GLenum type,
 	glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 }
 
-inline void VertexArray::UnbindAll() noexcept
+inline void VertexArray::Unbind() noexcept
 {
 	glBindVertexArray(0);
 }
