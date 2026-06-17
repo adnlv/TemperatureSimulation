@@ -49,10 +49,9 @@ inline VertexArray& VertexArray::operator=(VertexArray&& other) noexcept
 		return *this;
 	}
 
-	if (m_Id != 0)
-	{
-		glDeleteVertexArrays(1, &m_Id);
-	}
+	// Unused names in arrays are silently ignored, as is the value zero.
+	// https://registry.khronos.org/OpenGL-Refpages/gl4/html/glDeleteVertexArrays.xhtml
+	glDeleteVertexArrays(1, &m_Id);
 
 	m_Id = other.m_Id;
 
