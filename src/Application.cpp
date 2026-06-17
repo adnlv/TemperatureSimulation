@@ -306,8 +306,8 @@ void Application::Update()
 	GLint colorLocation = program.GetUniformLocation("uColor");
 	while (!glfwWindowShouldClose(m_Window))
 	{
-		int fbW, fbH;
-		glfwGetFramebufferSize(m_Window, &fbW, &fbH);
+		int framebufferWidth, framebufferHeight;
+		glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -316,7 +316,7 @@ void Application::Update()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		program.Use();
 
-		glm::vec2 resolution(fbW, fbH);
+		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
 
 		float time = static_cast<float>(glfwGetTime());
