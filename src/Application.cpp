@@ -263,20 +263,21 @@ void Application::Update()
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> mass_dis(0.1f, 1.0f);
-		std::uniform_real_distribution<float> radius_dis(0.01f, 0.1f);
+		std::uniform_real_distribution<float> vel_dis(-0.1f, 0.1f);
+		std::uniform_real_distribution<float> pos_dis(-0.5f, 0.5f);
+		std::uniform_real_distribution<float> mass_dis(0.005f, 0.005f);
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
-		std::uniform_int_distribution<size_t> n_dis(100, 200);
+		std::uniform_int_distribution<size_t> n_dis(1000, 2000);
 
 		const size_t n = n_dis(gen);
 		for (size_t i = 0; i < n; ++i)
 		{
+			const float mass = mass_dis(gen);
 			Particle particle{
-				mass_dis(gen),
-				radius_dis(gen),
-				{dis(gen), dis(gen)},
-				{dis(gen), dis(gen)},
+				mass,
+				mass * 2,
+				{pos_dis(gen), pos_dis(gen)},
+				{vel_dis(gen), vel_dis(gen)},
 				{color_dis(gen), color_dis(gen), color_dis(gen)},
 			};
 			particles.push_back(particle);
@@ -340,35 +341,69 @@ void Application::Update()
 
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
-		for (Particle& particle : particles)
+		for (size_t i = 0; i < particles.size(); ++i)
 		{
-			particle.position += particle.velocity * timer.dt();
-			
-			const float horizontal_radius = particle.radius * aspect_ratio;
-			if (particle.position.x - horizontal_radius < -1.0f)
+			Particle& p1 = particles.at(i);
+			for (size_t j = i + 1; j < particles.size(); ++j)
 			{
-				particle.position.x = -1.0f + horizontal_radius;
-				particle.velocity.x *= -1.0f;
-			}
-			else if (particle.position.x + horizontal_radius > 1.0f)
-			{
-				particle.position.x = 1.0f - horizontal_radius;
-				particle.velocity.x *= -1.0f;
-			}
-			if (particle.position.y - particle.radius < -1.0f)
-			{
-				particle.position.y = -1.0f + particle.radius;
-				particle.velocity.y *= -1.0f;
-			}
-			else if (particle.position.y + particle.radius > 1.0f)
-			{
-				particle.position.y = 1.0f - particle.radius;
-				particle.velocity.y *= -1.0f;
+				Particle& p2 = particles.at(j);
+
+				glm::vec2 pos1(p1.position.x / aspect_ratio, p1.position.y);
+				glm::vec2 pos2(p2.position.x / aspect_ratio, p2.position.y);
+
+				glm::vec2 vel1(p1.velocity.x / aspect_ratio, p1.velocity.y);
+				glm::vec2 vel2(p2.velocity.x / aspect_ratio, p2.velocity.y);
+
+				const auto pos_diff = pos1 - pos2;
+				const auto distance = glm::length(pos_diff);
+				const auto min_dist = p1.radius + p2.radius;
+
+				if (distance > min_dist || distance == 0.0f)
+					continue;
+
+				const auto vel_diff = vel1 - vel2;
+				const auto dot_prod = glm::dot(vel_diff, pos_diff);
+				if (dot_prod >= 0.0f)
+					continue;
+
+				const auto dist_sq = distance * distance;
+				const auto total_mass = p1.mass + p2.mass;
+				const auto impulse_scalar = dot_prod / dist_sq;
+
+				glm::vec2 new_vel1 = vel1 - (2.0f * p2.mass / total_mass) * impulse_scalar * pos_diff;
+				glm::vec2 new_vel2 = vel2 + (2.0f * p1.mass / total_mass) * impulse_scalar * pos_diff;
+
+				p1.velocity = glm::vec2(new_vel1.x * aspect_ratio, new_vel1.y);
+				p2.velocity = glm::vec2(new_vel2.x * aspect_ratio, new_vel2.y);
 			}
 
-			glUniform2fv(positionLocation, 1, glm::value_ptr(particle.position));
-			glUniform3fv(colorLocation, 1, glm::value_ptr(particle.color));
-			glUniform1f(radiusLocation, particle.radius);
+			p1.position += p1.velocity * timer.dt();
+
+			const float horizontal_radius = p1.radius * aspect_ratio;
+			if (p1.position.x - horizontal_radius < -1.0f)
+			{
+				p1.position.x = -1.0f + horizontal_radius;
+				p1.velocity.x *= -1.0f;
+			}
+			else if (p1.position.x + horizontal_radius > 1.0f)
+			{
+				p1.position.x = 1.0f - horizontal_radius;
+				p1.velocity.x *= -1.0f;
+			}
+			if (p1.position.y - p1.radius < -1.0f)
+			{
+				p1.position.y = -1.0f + p1.radius;
+				p1.velocity.y *= -1.0f;
+			}
+			else if (p1.position.y + p1.radius > 1.0f)
+			{
+				p1.position.y = 1.0f - p1.radius;
+				p1.velocity.y *= -1.0f;
+			}
+
+			glUniform2fv(positionLocation, 1, glm::value_ptr(p1.position));
+			glUniform3fv(colorLocation, 1, glm::value_ptr(p1.color));
+			glUniform1f(radiusLocation, p1.radius);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
