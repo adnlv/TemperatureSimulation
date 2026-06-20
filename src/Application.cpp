@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <random>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -249,19 +250,40 @@ void Application::GLSetDebugOutputCallback()
 
 void Application::Update()
 {
-	struct Circle {
-		glm::vec2 Position;
-		float Radius;
-		float Speed;
-		glm::vec3 Color;
+	struct particle
+	{
+		float mass{ 1.0f };
+		float radius{ 0 };
+		glm::vec2 position;
+		glm::vec2 velocity;
+		glm::vec3 color;
 	};
 
-	std::vector<Circle> circles = {
-		{{ 0.0f,  0.0f}, 0.3f,  1.0f, {0.85f, 0.35f, 0.20f}}, // Orange
-		{{-0.6f,  0.5f}, 0.15f, 2.5f, {0.20f, 0.85f, 0.35f}}, // Green
-		{{ 0.6f,  0.5f}, 0.15f, 1.5f, {0.20f, 0.35f, 0.85f}}, // Blue
-		{{ 0.0f, -0.6f}, 0.2f,  3.0f, {0.85f, 0.85f, 0.20f}}  // Yellow
-	};
+	std::vector<particle> particles;
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> mass_dis(0.1f, 1.0f);
+		std::uniform_real_distribution<float> radius_dis(0.01f, 0.1f);
+		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
+		std::uniform_int_distribution<size_t> n_dis(100, 200);
+
+		const size_t n = n_dis(gen);
+		for (size_t i = 0; i < n; ++i)
+		{
+			particle particle{
+				mass_dis(gen),
+				radius_dis(gen),
+				{dis(gen), dis(gen)},
+				{dis(gen), dis(gen)},
+				{color_dis(gen), color_dis(gen), color_dis(gen)},
+			};
+			particles.push_back(particle);
+		}
+
+		Log::Debug("initialized {} particles", n);
+	}
 
 	std::vector<float> vertices{
 		1.0f,  1.0f, 0.0f,
@@ -306,7 +328,7 @@ void Application::Update()
 		int framebufferWidth, framebufferHeight;
 		glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		vertexArray.Bind();
@@ -316,15 +338,37 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
 
-		float time = timer::time();
-		for (Circle& circle : circles)
+		const float time = timer::time();
+		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
+		for (particle& particle : particles)
 		{
-			circle.Position.x = sin(time * circle.Speed) * (1.0f - circle.Radius);
-			circle.Position.y = cos(time * circle.Speed) * (1.0f - circle.Radius);
+			particle.position += particle.velocity * timer.dt();
+			
+			const float horizontal_radius = particle.radius * aspect_ratio;
+			if (particle.position.x - horizontal_radius < -1.0f)
+			{
+				particle.position.x = -1.0f + horizontal_radius;
+				particle.velocity.x *= -1.0f;
+			}
+			else if (particle.position.x + horizontal_radius > 1.0f)
+			{
+				particle.position.x = 1.0f - horizontal_radius;
+				particle.velocity.x *= -1.0f;
+			}
+			if (particle.position.y - particle.radius < -1.0f)
+			{
+				particle.position.y = -1.0f + particle.radius;
+				particle.velocity.y *= -1.0f;
+			}
+			else if (particle.position.y + particle.radius > 1.0f)
+			{
+				particle.position.y = 1.0f - particle.radius;
+				particle.velocity.y *= -1.0f;
+			}
 
-			glUniform2fv(positionLocation, 1, glm::value_ptr(circle.Position));
-			glUniform3fv(colorLocation, 1, glm::value_ptr(circle.Color));
-			glUniform1f(radiusLocation, circle.Radius);
+			glUniform2fv(positionLocation, 1, glm::value_ptr(particle.position));
+			glUniform3fv(colorLocation, 1, glm::value_ptr(particle.color));
+			glUniform1f(radiusLocation, particle.radius);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
