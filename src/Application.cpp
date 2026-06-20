@@ -12,7 +12,7 @@
 #include "Log.h"
 #include "Shader.h"
 #include "Buffers.h"
-#include "timer.h"
+#include "Timer.h"
 
 class Application
 {
@@ -250,7 +250,7 @@ void Application::GLSetDebugOutputCallback()
 
 void Application::Update()
 {
-	struct particle
+	struct Particle
 	{
 		float mass{ 1.0f };
 		float radius{ 0 };
@@ -259,7 +259,7 @@ void Application::Update()
 		glm::vec3 color;
 	};
 
-	std::vector<particle> particles;
+	std::vector<Particle> particles;
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -272,7 +272,7 @@ void Application::Update()
 		const size_t n = n_dis(gen);
 		for (size_t i = 0; i < n; ++i)
 		{
-			particle particle{
+			Particle particle{
 				mass_dis(gen),
 				radius_dis(gen),
 				{dis(gen), dis(gen)},
@@ -320,7 +320,7 @@ void Application::Update()
 	GLint radiusLocation = program.GetUniformLocation("uRadius");
 	GLint colorLocation = program.GetUniformLocation("uColor");
 
-	timer timer;
+	Timer timer;
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		timer.start_frame();
@@ -338,9 +338,9 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
 
-		const float time = timer::time();
+		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
-		for (particle& particle : particles)
+		for (Particle& particle : particles)
 		{
 			particle.position += particle.velocity * timer.dt();
 			

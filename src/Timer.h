@@ -2,11 +2,11 @@
 #include <GLFW/glfw3.h>
 #include "Log.h"
 
-class timer
+class Timer
 {
 public:
-	timer() { m_frame_time = glfwGetTime(); }
-	~timer() = default;
+	Timer() { m_frame_time = glfwGetTime(); }
+	~Timer() = default;
 
 	[[nodiscard]] static float time() noexcept { return static_cast<float>(glfwGetTime()); }
 	[[nodiscard]] static double time_precise() noexcept { return glfwGetTime(); }
