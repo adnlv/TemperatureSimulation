@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "Shader.h"
 #include "Buffers.h"
+#include "timer.h"
 
 class Application
 {
@@ -274,11 +275,11 @@ void Application::Update()
 	};
 
 	VertexArray vertexArray;
-	
+
 	Buffer vertexBuffer(BufferType::ArrayBuffer, vertices.size() * sizeof(vertices.at(0)), vertices.data(), BufferUsage::StaticDraw);
 	vertexArray.SetAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
 	vertexArray.EnableAttribArray(0);
-	
+
 	Buffer elementArray(BufferType::ElementArrayBuffer, indices.size() * sizeof(indices.at(0)), indices.data(), BufferUsage::StaticDraw);
 
 	ShaderProgram program = []()
@@ -296,8 +297,12 @@ void Application::Update()
 	GLint positionLocation = program.GetUniformLocation("uPosition");
 	GLint radiusLocation = program.GetUniformLocation("uRadius");
 	GLint colorLocation = program.GetUniformLocation("uColor");
+
+	timer timer;
 	while (!glfwWindowShouldClose(m_Window))
 	{
+		timer.start_frame();
+
 		int framebufferWidth, framebufferHeight;
 		glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
 
@@ -311,7 +316,7 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
 
-		float time = static_cast<float>(glfwGetTime());
+		float time = timer::time();
 		for (Circle& circle : circles)
 		{
 			circle.Position.x = sin(time * circle.Speed) * (1.0f - circle.Radius);
@@ -326,6 +331,8 @@ void Application::Update()
 
 		glfwSwapBuffers(m_Window);
 		glfwPollEvents();
+
+		timer.end_frame();
 	}
 }
 
