@@ -375,19 +375,20 @@ void Application::Update()
 			ImGui::Begin("Simulation Panel");
 
 			const size_t fps = timer.fps();
+			const float ms_per_frame = fps != 0 ? 1000.0f / fps : 0;
 
 			if (ImGui::CollapsingHeader("Performance Info", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("Frame count: %zu", timer.frame_count());
 				ImGui::Text("Frames per second: %zu", fps);
-				ImGui::Text("Frame time: %zu ms", fps != 0 ? 1000 / fps : 0);
-				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
+				ImGui::Text("Frame time: %.2f ms", ms_per_frame);
 			}
 
 			ImGui::Separator();
 
 			if (ImGui::CollapsingHeader("Playback Controls", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
 				ImGui::SliderInt("Active particles", &active_particles_count, 0, max_active_particles);
 			}
 
