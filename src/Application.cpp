@@ -404,11 +404,6 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				if (ImGui::Checkbox("VSync", &vsync_enabled))
-				{
-					glfwSwapInterval(vsync_enabled);
-				}
-
 				ImGui::Text("Frames per second: %zu", fps);
 				ImGui::Text("Frame time: %.2f ms", ms_per_frame);
 				ImGui::Text("Frame count: %zu", timer.frame_count());
@@ -418,7 +413,12 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Playback Controls", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
+				if (ImGui::Checkbox("VSync", &vsync_enabled))
+				{
+					glfwSwapInterval(vsync_enabled);
+				}
+
+				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.4fx");
 				ImGui::SliderInt("Active particles", &particles.num_active_particles, 0, particles.num_max_particles);
 			}
 
@@ -454,55 +454,65 @@ void Application::Update()
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
+			auto& p1{ particles.positions[i] };
+			auto& v1{ particles.velocities[i] };
+			auto& r1{ particles.radii[i] };
+			auto& m1{ particles.mass[i] };
+
 			for (size_t j = i + 1; j < particles.num_active_particles; ++j)
 			{
-				const auto pos_diff = particles.positions[i] - particles.positions[j];
-				const auto min_dist = particles.radii[i] + particles.radii[j];
+				auto& p2{ particles.positions[j] };
+				auto& v2{ particles.velocities[j] };
+				auto& r2{ particles.radii[j] };
+				auto& m2{ particles.mass[j] };
+
+				const auto pos_diff = p1 - p2;
+				const auto min_dist = r1 + r2;
 				const auto dist = glm::length(pos_diff);
 
 				if (dist > min_dist || dist == 0.0f)
 					continue;
 
-				const auto vel_diff = particles.velocities[i] - particles.velocities[j];
+				const auto vel_diff = v1 - v2;
 				const auto dot_prod = glm::dot(vel_diff, pos_diff);
 				if (dot_prod >= 0.0f)
 					continue;
 
 				const auto dist_sq = dist * dist;
-				const auto total_mass = particles.mass[i] + particles.mass[j];
+				const auto total_mass = m1 + m2;
 				const auto impulse_scalar = dot_prod / dist_sq;
 
-				particles.velocities[i] -= (2.0f * particles.mass[j] / total_mass) * impulse_scalar * pos_diff;
-				particles.velocities[j] += (2.0f * particles.mass[i] / total_mass) * impulse_scalar * pos_diff;
+				v1 -= (2.0f * m2 / total_mass) * impulse_scalar * pos_diff;
+				v2 += (2.0f * m1 / total_mass) * impulse_scalar * pos_diff;
 			}
 
-			particles.positions[i] += particles.velocities[i] * dt;
+			p1 += v1 * dt;
 
 			const glm::vec2 limit(1.0f / aspect_ratio, 1.0f);
-			if (particles.positions[i].x - particles.radii[i] < -limit.x)
+			if (p1.x - r1 < -limit.x)
 			{
-				particles.positions[i].x = -limit.x + particles.radii[i];
-				particles.velocities[i].x *= -1.0f;
+				p1.x = -limit.x + r1;
+				v1.x *= -1.0f;
 			}
-			else if (particles.positions[i].x + particles.radii[i] > limit.x)
+			else if (p1.x + r1 > limit.x)
 			{
-				particles.positions[i].x = limit.x - particles.radii[i];
-				particles.velocities[i].x *= -1.0f;
+				p1.x = limit.x - r1;
+				v1.x *= -1.0f;
 			}
-			if (particles.positions[i].y - particles.radii[i] < -limit.y)
+			if (p1.y - r1 < -limit.y)
 			{
-				particles.positions[i].y = -limit.y + particles.radii[i];
-				particles.velocities[i].y *= -1.0f;
+				p1.y = -limit.y + r1;
+				v1.y *= -1.0f;
 			}
-			else if (particles.positions[i].y + particles.radii[i] > limit.y)
+			else if (p1.y + r1 > limit.y)
 			{
-				particles.positions[i].y = limit.y - particles.radii[i];
-				particles.velocities[i].y *= -1.0f;
+				p1.y = limit.y - r1;
+				v1.y *= -1.0f;
 			}
 
-			const float velocity_sq = glm::dot(particles.velocities[i], particles.velocities[i]);
-			current_total_kinetic_energy += particles.mass[i] * velocity_sq / 2.0f;
-			current_total_momentum += particles.velocities[i] * particles.mass[i];
+			const float velocity_sq = glm::dot(v1, v1);
+			current_total_kinetic_energy += m1 * velocity_sq / 2.0f;
+			current_total_momentum += v1 * m1;
 		}
 
 		total_kinetic_energy = current_total_kinetic_energy;

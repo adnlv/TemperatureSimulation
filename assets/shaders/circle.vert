@@ -15,7 +15,7 @@ void main()
 {
 	float inv_aspect_ratio = u_resolution.y / u_resolution.x;
 	vec2 local_pos = a_pos.xy * a_radius;
-	vec2 clip_pos = vec2(local_pos.x * inv_aspect_ratio , local_pos.y) + a_center;
+	vec2 clip_pos = vec2((local_pos.x + a_center.x) * inv_aspect_ratio, local_pos.y + a_center.y);
 	gl_Position = vec4(clip_pos.x, clip_pos.y, a_pos.z, 1.0);
 	
 	tex_coords = a_pos.xy;
