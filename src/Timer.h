@@ -13,6 +13,8 @@ public:
 
 	[[nodiscard]] float dt() const noexcept { return static_cast<float>(m_dt); }
 	[[nodiscard]] double dt_precise() const noexcept { return m_dt; }
+	[[nodiscard]] size_t frame_count() const noexcept { return m_frame_count; }
+	[[nodiscard]] size_t fps() const noexcept { return m_fps; }
 
 	void start_frame() noexcept { m_last_frame_time = m_frame_time; }
 
@@ -29,8 +31,6 @@ public:
 			m_fps = m_cumulative_frame_count;
 			m_cumulative_frame_count = 0;
 			m_cumulative_dt -= 1.0;
-
-			Log::Trace("frame {}, dt: {:.8f}, fps: {}", m_frame_count, m_dt, m_fps);
 		}
 	}
 
