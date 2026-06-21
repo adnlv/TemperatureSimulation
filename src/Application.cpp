@@ -294,15 +294,16 @@ public:
 	std::vector<glm::vec2> velocities;
 	std::vector<glm::vec3> colors;
 
-	int active_particles_count;
+	int num_max_particles;
+	int num_active_particles;
 
-	ParticleBuffer() : active_particles_count(2000)
+	ParticleBuffer() : num_max_particles(2000), num_active_particles(num_max_particles / 2)
 	{
-		mass.resize(active_particles_count);
-		radii.resize(active_particles_count);
-		positions.resize(active_particles_count);
-		velocities.resize(active_particles_count);
-		colors.resize(active_particles_count);
+		mass.resize(num_max_particles);
+		radii.resize(num_max_particles);
+		positions.resize(num_max_particles);
+		velocities.resize(num_max_particles);
+		colors.resize(num_max_particles);
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -311,7 +312,7 @@ public:
 		std::uniform_real_distribution<float> vel_dis(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
 
-		for (size_t i = 0; i < active_particles_count; ++i)
+		for (size_t i = 0; i < num_max_particles; ++i)
 		{
 			constexpr float r = 0.008f;
 
@@ -398,7 +399,7 @@ void Application::Update()
 			if (ImGui::CollapsingHeader("Playback Controls", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
-				ImGui::SliderInt("Active particles", &particles.active_particles_count, 0, static_cast<int>(particles.positions.size()));
+				ImGui::SliderInt("Active particles", &particles.num_active_particles, 0, particles.num_max_particles);
 			}
 
 			ImGui::Separator();
@@ -431,9 +432,9 @@ void Application::Update()
 
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
-		for (size_t i = 0; i < particles.active_particles_count; ++i)
+		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
-			for (size_t j = i + 1; j < particles.active_particles_count; ++j)
+			for (size_t j = i + 1; j < particles.num_active_particles; ++j)
 			{
 				glm::vec2 pos1(particles.positions[i].x / aspect_ratio, particles.positions[i].y);
 				glm::vec2 pos2(particles.positions[j].x / aspect_ratio, particles.positions[j].y);
@@ -506,7 +507,7 @@ void Application::Update()
 		}
 
 		total_kinetic_energy = current_total_kinetic_energy;
-		temperature = particles.active_particles_count != 0 ? total_kinetic_energy / particles.active_particles_count : 0.0f;
+		temperature = particles.num_active_particles != 0 ? total_kinetic_energy / particles.num_active_particles : 0.0f;
 		total_momentum = current_total_momentum;
 
 		ImGui::Render();
