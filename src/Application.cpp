@@ -267,7 +267,7 @@ void Application::imgui_init() noexcept
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	ImGui::StyleColorsDark();
-	
+
 	float scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.ScaleAllSizes(scale);
@@ -357,18 +357,42 @@ void Application::Update()
 	GLint radiusLocation = program.GetUniformLocation("uRadius");
 	GLint colorLocation = program.GetUniformLocation("uColor");
 
+	const int max_active_particles = static_cast<int>(particles.size());
+	int active_particles_count = max_active_particles;
+	float time_scale = 1.0f;
+
 	Timer timer;
-	bool show_demo_window = true;
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		timer.start_frame();
+		float dt = timer.dt() * time_scale;
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
+		{
+			ImGui::Begin("Simulation Panel");
+
+			const size_t fps = timer.fps();
+
+			if (ImGui::CollapsingHeader("Performance Info", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Text("Frame count: %zu", timer.frame_count());
+				ImGui::Text("Frames per second: %zu", fps);
+				ImGui::Text("Frame time: %zu ms", fps != 0 ? 1000 / fps : 0);
+				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::CollapsingHeader("Playback Controls", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::SliderInt("Active particles", &active_particles_count, 0, max_active_particles);
+			}
+
+			ImGui::End();
+		}
 
 		int framebufferWidth, framebufferHeight;
 		glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
@@ -385,10 +409,10 @@ void Application::Update()
 
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
-		for (size_t i = 0; i < particles.size(); ++i)
+		for (size_t i = 0; i < active_particles_count; ++i)
 		{
 			Particle& p1 = particles.at(i);
-			for (size_t j = i + 1; j < particles.size(); ++j)
+			for (size_t j = i + 1; j < active_particles_count; ++j)
 			{
 				Particle& p2 = particles.at(j);
 
@@ -421,7 +445,7 @@ void Application::Update()
 				p2.velocity = glm::vec2(new_vel2.x * aspect_ratio, new_vel2.y);
 			}
 
-			p1.position += p1.velocity * timer.dt();
+			p1.position += p1.velocity * dt;
 
 			const float horizontal_radius = p1.radius * aspect_ratio;
 			if (p1.position.x - horizontal_radius < -1.0f)
