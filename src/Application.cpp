@@ -377,6 +377,9 @@ void Application::Update()
 
 	GLint resolution_location = program.GetUniformLocation("u_resolution");
 
+	bool vsync_enabled = false;
+	glfwSwapInterval(vsync_enabled);
+
 	float time_scale = 1.0f;
 
 	float temperature = 0.0f;
@@ -399,8 +402,13 @@ void Application::Update()
 			const size_t fps = timer.fps();
 			const float ms_per_frame = fps != 0 ? 1000.0f / fps : 0;
 
-			if (ImGui::CollapsingHeader("Performance Info", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				if (ImGui::Checkbox("VSync", &vsync_enabled))
+				{
+					glfwSwapInterval(vsync_enabled);
+				}
+
 				ImGui::Text("Frames per second: %zu", fps);
 				ImGui::Text("Frame time: %.2f ms", ms_per_frame);
 				ImGui::Text("Frame count: %zu", timer.frame_count());
