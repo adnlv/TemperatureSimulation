@@ -299,7 +299,7 @@ void Application::Update()
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> vel_dis(-0.01f, 0.01f);
+		std::uniform_real_distribution<float> vel_dis(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> pos_dis(-0.5f, 0.5f);
 		std::uniform_real_distribution<float> mass_dis(0.005f, 0.005f);
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
@@ -361,6 +361,10 @@ void Application::Update()
 	int active_particles_count = max_active_particles;
 	float time_scale = 1.0f;
 
+	float temperature = 0.0f;
+	float total_kinetic_energy = 0.0f;
+	glm::vec2 total_momentum{ 0 };
+
 	Timer timer;
 	while (!glfwWindowShouldClose(m_Window))
 	{
@@ -379,9 +383,9 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Performance Info", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Frame count: %zu", timer.frame_count());
 				ImGui::Text("Frames per second: %zu", fps);
 				ImGui::Text("Frame time: %.2f ms", ms_per_frame);
+				ImGui::Text("Frame count: %zu", timer.frame_count());
 			}
 
 			ImGui::Separator();
@@ -390,6 +394,15 @@ void Application::Update()
 			{
 				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
 				ImGui::SliderInt("Active particles", &active_particles_count, 0, max_active_particles);
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::CollapsingHeader("Physical Properties", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Text("Temperature (Kelvins): %.10f", temperature);
+				ImGui::Text("Total kinetic energy (Joules): %.10f", total_kinetic_energy);
+				ImGui::Text("Total momentum (kg * m/s): (x: %.10f; y: %.10f)", total_momentum.x, total_momentum.y);
 			}
 
 			ImGui::End();
@@ -407,6 +420,9 @@ void Application::Update()
 
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
+
+		glm::vec2 current_total_momentum{ 0 };
+		float current_total_kinetic_energy = 0.0f;
 
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
@@ -475,7 +491,21 @@ void Application::Update()
 			glUniform1f(radiusLocation, p1.radius);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+			{
+				glm::vec2 true_vel(p1.velocity.x / aspect_ratio, p1.velocity.y);
+
+				const float velocity_sq = glm::dot(true_vel, true_vel);
+				current_total_kinetic_energy += p1.mass * velocity_sq / 2.0f;
+
+				const glm::vec2 linear_momentum = true_vel * p1.mass;
+				current_total_momentum += linear_momentum;
+			}
 		}
+
+		total_kinetic_energy = current_total_kinetic_energy;
+		temperature = active_particles_count != 0 ? total_kinetic_energy / active_particles_count : 0.0f;
+		total_momentum = current_total_momentum;
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
