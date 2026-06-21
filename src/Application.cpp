@@ -343,9 +343,24 @@ void Application::Update()
 
 	VertexArray vertexArray;
 
-	Buffer vertexBuffer(BufferType::ArrayBuffer, vertices.size() * sizeof(vertices.at(0)), vertices.data(), BufferUsage::StaticDraw);
-	vertexArray.SetAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
+	Buffer vbo(BufferType::ArrayBuffer, vertices.size() * sizeof(vertices.at(0)), vertices.data(), BufferUsage::StaticDraw);
+	vertexArray.SetAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
+	vertexArray.EnableAttribArray(2);
+
+	Buffer radius_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.radii.at(0)), nullptr, BufferUsage::DynamicDraw);
+	vertexArray.SetAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(particles.radii.at(0)), nullptr);
 	vertexArray.EnableAttribArray(0);
+	vertexArray.SetAttribDivisor(0, 1);
+
+	Buffer center_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.positions.at(0)), nullptr, BufferUsage::DynamicDraw);
+	vertexArray.SetAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(particles.positions.at(0)), nullptr);
+	vertexArray.EnableAttribArray(1);
+	vertexArray.SetAttribDivisor(1, 1);
+
+	Buffer color_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.colors.at(0)), nullptr, BufferUsage::DynamicDraw);
+	vertexArray.SetAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(particles.colors.at(0)), nullptr);
+	vertexArray.EnableAttribArray(3);
+	vertexArray.SetAttribDivisor(3, 1);
 
 	Buffer elementArray(BufferType::ElementArrayBuffer, indices.size() * sizeof(indices.at(0)), indices.data(), BufferUsage::StaticDraw);
 
@@ -360,10 +375,7 @@ void Application::Update()
 			return ShaderProgram(vertexShader, fragmentShader);
 		}();
 
-	GLint resolutionLocation = program.GetUniformLocation("uResolution");
-	GLint positionLocation = program.GetUniformLocation("uPosition");
-	GLint radiusLocation = program.GetUniformLocation("uRadius");
-	GLint colorLocation = program.GetUniformLocation("uColor");
+	GLint resolution_location = program.GetUniformLocation("u_resolution");
 
 	float time_scale = 1.0f;
 
@@ -425,7 +437,7 @@ void Application::Update()
 		program.Use();
 
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
-		glUniform2fv(resolutionLocation, 1, glm::value_ptr(resolution));
+		glUniform2fv(resolution_location, 1, glm::value_ptr(resolution));
 
 		glm::vec2 current_total_momentum{ 0 };
 		float current_total_kinetic_energy = 0.0f;
@@ -480,14 +492,6 @@ void Application::Update()
 				particles.velocities[i].y *= -1.0f;
 			}
 
-			glm::vec2 render_pos(particles.positions[i].x * aspect_ratio, particles.positions[i].y);
-			glUniform2fv(positionLocation, 1, glm::value_ptr(render_pos));
-			
-			glUniform3fv(colorLocation, 1, glm::value_ptr(particles.colors[i]));
-			glUniform1f(radiusLocation, particles.radii[i]);
-
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
 			const float velocity_sq = glm::dot(particles.velocities[i], particles.velocities[i]);
 			current_total_kinetic_energy += particles.mass[i] * velocity_sq / 2.0f;
 			current_total_momentum += particles.velocities[i] * particles.mass[i];
@@ -496,6 +500,12 @@ void Application::Update()
 		total_kinetic_energy = current_total_kinetic_energy;
 		temperature = particles.num_active_particles != 0 ? total_kinetic_energy / particles.num_active_particles : 0.0f;
 		total_momentum = current_total_momentum;
+
+		radius_vbo.SubData(0, particles.num_active_particles * sizeof(particles.radii.at(0)), particles.radii.data());
+		center_vbo.SubData(0, particles.num_active_particles * sizeof(particles.positions.at(0)), particles.positions.data());
+		color_vbo.SubData(0, particles.num_active_particles * sizeof(particles.colors.at(0)), particles.colors.data());
+
+		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, particles.num_active_particles);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

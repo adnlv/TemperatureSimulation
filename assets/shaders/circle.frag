@@ -1,15 +1,18 @@
 #version 460 core
 
-in vec2 LocalPos;
-out vec4 FragColor;
-uniform float uRadius;
-uniform vec2 uResolution;
-uniform vec3 uColor;
+in float radius;
+in vec2 tex_coords;
+in vec3 color;
+
+uniform vec2 u_resolution;
+
+out vec4 frag_color;
 
 void main()
 {
-	float fade = 2.0 / (uResolution.y * uRadius);
-	float distance = length(LocalPos);
-	float circleAlpha = 1.0 - smoothstep(1.0 - fade, 1.0, distance);
-	FragColor = vec4(uColor, circleAlpha);
+	float fade = 2.0 / (u_resolution.y * radius);
+	float dist = length(tex_coords);
+	float alpha = 1.0 - smoothstep(1.0 - fade, 1.0, dist);
+	
+	frag_color = vec4(color, alpha);
 }

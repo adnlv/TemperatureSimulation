@@ -19,6 +19,7 @@ public:
 	void EnableAttribArray(GLuint index) const noexcept;
 	void DisableAttribArray(GLuint index) const noexcept;
 	void SetAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer) const noexcept;
+	void SetAttribDivisor(GLuint index, GLuint divisor) const noexcept;
 
 	static void Unbind() noexcept;
 
@@ -87,6 +88,12 @@ inline void VertexArray::SetAttribPointer(GLuint index, GLint size, GLenum type,
 	glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 }
 
+inline void VertexArray::SetAttribDivisor(GLuint index, GLuint divisor) const noexcept
+{
+	Bind();
+	glVertexAttribDivisor(index, divisor);
+}
+
 inline void VertexArray::Unbind() noexcept
 {
 	glBindVertexArray(0);
@@ -139,6 +146,7 @@ public:
 	GLuint Id() const noexcept;
 	GLenum Type() const noexcept;
 	void Bind() const noexcept;
+	void SubData(GLintptr offset, GLsizeiptr size, const void* data) const noexcept;
 
 	static void Unbind(BufferType type) noexcept;
 
@@ -200,6 +208,12 @@ inline GLenum Buffer::Type() const noexcept
 inline void Buffer::Bind() const noexcept
 {
 	glBindBuffer(m_Type, m_Id);
+}
+
+inline void Buffer::SubData(GLintptr offset, GLsizeiptr size, const void* data) const noexcept
+{
+	Bind();
+	glBufferSubData(m_Type, offset, size, data);
 }
 
 inline void Buffer::Unbind(BufferType type) noexcept
