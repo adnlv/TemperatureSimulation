@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 #include <random>
+#include <cmath>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -284,43 +285,49 @@ void Application::imgui_shutdown() noexcept
 	ImGui::DestroyContext();
 }
 
-void Application::Update()
+class ParticleBuffer
 {
-	struct Particle
-	{
-		float mass{ 1.0f };
-		float radius{ 0 };
-		glm::vec2 position;
-		glm::vec2 velocity;
-		glm::vec3 color;
-	};
+public:
+	std::vector<float> mass;
+	std::vector<float> radii;
+	std::vector<glm::vec2> positions;
+	std::vector<glm::vec2> velocities;
+	std::vector<glm::vec3> colors;
 
-	std::vector<Particle> particles;
+	int active_particles_count;
+
+	ParticleBuffer() : active_particles_count(2000)
 	{
+		mass.resize(active_particles_count);
+		radii.resize(active_particles_count);
+		positions.resize(active_particles_count);
+		velocities.resize(active_particles_count);
+		colors.resize(active_particles_count);
+
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> vel_dis(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> mass_dis(0.001f, 0.005f);
 		std::uniform_real_distribution<float> pos_dis(-0.5f, 0.5f);
-		std::uniform_real_distribution<float> mass_dis(0.005f, 0.005f);
+		std::uniform_real_distribution<float> vel_dis(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
-		std::uniform_int_distribution<size_t> n_dis(1000, 2000);
 
-		const size_t n = n_dis(gen);
-		for (size_t i = 0; i < n; ++i)
+		for (size_t i = 0; i < active_particles_count; ++i)
 		{
-			const float mass = mass_dis(gen);
-			Particle particle{
-				mass,
-				mass * 2,
-				{pos_dis(gen), pos_dis(gen)},
-				{vel_dis(gen), vel_dis(gen)},
-				{color_dis(gen), color_dis(gen), color_dis(gen)},
-			};
-			particles.push_back(particle);
-		}
+			constexpr float r = 0.008f;
 
-		Log::Debug("initialized {} particles", n);
+			radii[i] = r;
+			mass[i] = mass_dis(gen);
+			positions[i] = glm::vec2(pos_dis(gen), pos_dis(gen));
+			velocities[i] = glm::vec2(vel_dis(gen), vel_dis(gen));
+			colors[i] = glm::vec3(color_dis(gen), color_dis(gen), color_dis(gen));
+		}
 	}
+	~ParticleBuffer() = default;
+};
+
+void Application::Update()
+{
+	ParticleBuffer particles;
 
 	std::vector<float> vertices{
 		1.0f,  1.0f, 0.0f,
@@ -357,8 +364,6 @@ void Application::Update()
 	GLint radiusLocation = program.GetUniformLocation("uRadius");
 	GLint colorLocation = program.GetUniformLocation("uColor");
 
-	const int max_active_particles = static_cast<int>(particles.size());
-	int active_particles_count = max_active_particles;
 	float time_scale = 1.0f;
 
 	float temperature = 0.0f;
@@ -393,7 +398,7 @@ void Application::Update()
 			if (ImGui::CollapsingHeader("Playback Controls", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::SliderFloat("Time scale", &time_scale, 0.0f, 1.0f, "%.2fx");
-				ImGui::SliderInt("Active particles", &active_particles_count, 0, max_active_particles);
+				ImGui::SliderInt("Active particles", &particles.active_particles_count, 0, static_cast<int>(particles.positions.size()));
 			}
 
 			ImGui::Separator();
@@ -426,22 +431,19 @@ void Application::Update()
 
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
-		for (size_t i = 0; i < active_particles_count; ++i)
+		for (size_t i = 0; i < particles.active_particles_count; ++i)
 		{
-			Particle& p1 = particles.at(i);
-			for (size_t j = i + 1; j < active_particles_count; ++j)
+			for (size_t j = i + 1; j < particles.active_particles_count; ++j)
 			{
-				Particle& p2 = particles.at(j);
+				glm::vec2 pos1(particles.positions[i].x / aspect_ratio, particles.positions[i].y);
+				glm::vec2 pos2(particles.positions[j].x / aspect_ratio, particles.positions[j].y);
 
-				glm::vec2 pos1(p1.position.x / aspect_ratio, p1.position.y);
-				glm::vec2 pos2(p2.position.x / aspect_ratio, p2.position.y);
-
-				glm::vec2 vel1(p1.velocity.x / aspect_ratio, p1.velocity.y);
-				glm::vec2 vel2(p2.velocity.x / aspect_ratio, p2.velocity.y);
+				glm::vec2 vel1(particles.velocities[i].x / aspect_ratio, particles.velocities[i].y);
+				glm::vec2 vel2(particles.velocities[j].x / aspect_ratio, particles.velocities[j].y);
 
 				const auto pos_diff = pos1 - pos2;
 				const auto distance = glm::length(pos_diff);
-				const auto min_dist = p1.radius + p2.radius;
+				const auto min_dist = particles.radii[i] + particles.radii[j];
 
 				if (distance > min_dist || distance == 0.0f)
 					continue;
@@ -452,59 +454,59 @@ void Application::Update()
 					continue;
 
 				const auto dist_sq = distance * distance;
-				const auto total_mass = p1.mass + p2.mass;
+				const auto total_mass = particles.mass[i] + particles.mass[j];
 				const auto impulse_scalar = dot_prod / dist_sq;
 
-				glm::vec2 new_vel1 = vel1 - (2.0f * p2.mass / total_mass) * impulse_scalar * pos_diff;
-				glm::vec2 new_vel2 = vel2 + (2.0f * p1.mass / total_mass) * impulse_scalar * pos_diff;
+				glm::vec2 new_vel1 = vel1 - (2.0f * particles.mass[j] / total_mass) * impulse_scalar * pos_diff;
+				glm::vec2 new_vel2 = vel2 + (2.0f * particles.mass[i] / total_mass) * impulse_scalar * pos_diff;
 
-				p1.velocity = glm::vec2(new_vel1.x * aspect_ratio, new_vel1.y);
-				p2.velocity = glm::vec2(new_vel2.x * aspect_ratio, new_vel2.y);
-			}
-
-			p1.position += p1.velocity * dt;
-
-			const float horizontal_radius = p1.radius * aspect_ratio;
-			if (p1.position.x - horizontal_radius < -1.0f)
-			{
-				p1.position.x = -1.0f + horizontal_radius;
-				p1.velocity.x *= -1.0f;
-			}
-			else if (p1.position.x + horizontal_radius > 1.0f)
-			{
-				p1.position.x = 1.0f - horizontal_radius;
-				p1.velocity.x *= -1.0f;
-			}
-			if (p1.position.y - p1.radius < -1.0f)
-			{
-				p1.position.y = -1.0f + p1.radius;
-				p1.velocity.y *= -1.0f;
-			}
-			else if (p1.position.y + p1.radius > 1.0f)
-			{
-				p1.position.y = 1.0f - p1.radius;
-				p1.velocity.y *= -1.0f;
+				particles.velocities[i] = glm::vec2(new_vel1.x * aspect_ratio, new_vel1.y);
+				particles.velocities[j] = glm::vec2(new_vel2.x * aspect_ratio, new_vel2.y);
 			}
 
-			glUniform2fv(positionLocation, 1, glm::value_ptr(p1.position));
-			glUniform3fv(colorLocation, 1, glm::value_ptr(p1.color));
-			glUniform1f(radiusLocation, p1.radius);
+			particles.positions[i] += particles.velocities[i] * dt;
+
+			const float horizontal_radius = particles.radii[i] * aspect_ratio;
+			if (particles.positions[i].x - horizontal_radius < -1.0f)
+			{
+				particles.positions[i].x = -1.0f + horizontal_radius;
+				particles.velocities[i].x *= -1.0f;
+			}
+			else if (particles.positions[i].x + horizontal_radius > 1.0f)
+			{
+				particles.positions[i].x = 1.0f - horizontal_radius;
+				particles.velocities[i].x *= -1.0f;
+			}
+			if (particles.positions[i].y - particles.radii[i] < -1.0f)
+			{
+				particles.positions[i].y = -1.0f + particles.radii[i];
+				particles.velocities[i].y *= -1.0f;
+			}
+			else if (particles.positions[i].y + particles.radii[i] > 1.0f)
+			{
+				particles.positions[i].y = 1.0f - particles.radii[i];
+				particles.velocities[i].y *= -1.0f;
+			}
+
+			glUniform2fv(positionLocation, 1, glm::value_ptr(particles.positions[i]));
+			glUniform3fv(colorLocation, 1, glm::value_ptr(particles.colors[i]));
+			glUniform1f(radiusLocation, particles.radii[i]);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 			{
-				glm::vec2 true_vel(p1.velocity.x / aspect_ratio, p1.velocity.y);
+				glm::vec2 true_vel(particles.velocities[i].x / aspect_ratio, particles.velocities[i].y);
 
 				const float velocity_sq = glm::dot(true_vel, true_vel);
-				current_total_kinetic_energy += p1.mass * velocity_sq / 2.0f;
+				current_total_kinetic_energy += particles.mass[i] * velocity_sq / 2.0f;
 
-				const glm::vec2 linear_momentum = true_vel * p1.mass;
+				const glm::vec2 linear_momentum = true_vel * particles.mass[i];
 				current_total_momentum += linear_momentum;
 			}
 		}
 
 		total_kinetic_energy = current_total_kinetic_energy;
-		temperature = active_particles_count != 0 ? total_kinetic_energy / active_particles_count : 0.0f;
+		temperature = particles.active_particles_count != 0 ? total_kinetic_energy / particles.active_particles_count : 0.0f;
 		total_momentum = current_total_momentum;
 
 		ImGui::Render();
