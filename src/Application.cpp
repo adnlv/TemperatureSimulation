@@ -436,74 +436,61 @@ void Application::Update()
 		{
 			for (size_t j = i + 1; j < particles.num_active_particles; ++j)
 			{
-				glm::vec2 pos1(particles.positions[i].x / aspect_ratio, particles.positions[i].y);
-				glm::vec2 pos2(particles.positions[j].x / aspect_ratio, particles.positions[j].y);
-
-				glm::vec2 vel1(particles.velocities[i].x / aspect_ratio, particles.velocities[i].y);
-				glm::vec2 vel2(particles.velocities[j].x / aspect_ratio, particles.velocities[j].y);
-
-				const auto pos_diff = pos1 - pos2;
-				const auto distance = glm::length(pos_diff);
+				const auto pos_diff = particles.positions[i] - particles.positions[j];
 				const auto min_dist = particles.radii[i] + particles.radii[j];
+				const auto dist = glm::length(pos_diff);
 
-				if (distance > min_dist || distance == 0.0f)
+				if (dist > min_dist || dist == 0.0f)
 					continue;
 
-				const auto vel_diff = vel1 - vel2;
+				const auto vel_diff = particles.velocities[i] - particles.velocities[j];
 				const auto dot_prod = glm::dot(vel_diff, pos_diff);
 				if (dot_prod >= 0.0f)
 					continue;
 
-				const auto dist_sq = distance * distance;
+				const auto dist_sq = dist * dist;
 				const auto total_mass = particles.mass[i] + particles.mass[j];
 				const auto impulse_scalar = dot_prod / dist_sq;
 
-				glm::vec2 new_vel1 = vel1 - (2.0f * particles.mass[j] / total_mass) * impulse_scalar * pos_diff;
-				glm::vec2 new_vel2 = vel2 + (2.0f * particles.mass[i] / total_mass) * impulse_scalar * pos_diff;
-
-				particles.velocities[i] = glm::vec2(new_vel1.x * aspect_ratio, new_vel1.y);
-				particles.velocities[j] = glm::vec2(new_vel2.x * aspect_ratio, new_vel2.y);
+				particles.velocities[i] -= (2.0f * particles.mass[j] / total_mass) * impulse_scalar * pos_diff;
+				particles.velocities[j] += (2.0f * particles.mass[i] / total_mass) * impulse_scalar * pos_diff;
 			}
 
 			particles.positions[i] += particles.velocities[i] * dt;
 
-			const float horizontal_radius = particles.radii[i] * aspect_ratio;
-			if (particles.positions[i].x - horizontal_radius < -1.0f)
+			const glm::vec2 limit(1.0f / aspect_ratio, 1.0f);
+			if (particles.positions[i].x - particles.radii[i] < -limit.x)
 			{
-				particles.positions[i].x = -1.0f + horizontal_radius;
+				particles.positions[i].x = -limit.x + particles.radii[i];
 				particles.velocities[i].x *= -1.0f;
 			}
-			else if (particles.positions[i].x + horizontal_radius > 1.0f)
+			else if (particles.positions[i].x + particles.radii[i] > limit.x)
 			{
-				particles.positions[i].x = 1.0f - horizontal_radius;
+				particles.positions[i].x = limit.x - particles.radii[i];
 				particles.velocities[i].x *= -1.0f;
 			}
-			if (particles.positions[i].y - particles.radii[i] < -1.0f)
+			if (particles.positions[i].y - particles.radii[i] < -limit.y)
 			{
-				particles.positions[i].y = -1.0f + particles.radii[i];
+				particles.positions[i].y = -limit.y + particles.radii[i];
 				particles.velocities[i].y *= -1.0f;
 			}
-			else if (particles.positions[i].y + particles.radii[i] > 1.0f)
+			else if (particles.positions[i].y + particles.radii[i] > limit.y)
 			{
-				particles.positions[i].y = 1.0f - particles.radii[i];
+				particles.positions[i].y = limit.y - particles.radii[i];
 				particles.velocities[i].y *= -1.0f;
 			}
 
-			glUniform2fv(positionLocation, 1, glm::value_ptr(particles.positions[i]));
+			glm::vec2 render_pos(particles.positions[i].x * aspect_ratio, particles.positions[i].y);
+			glUniform2fv(positionLocation, 1, glm::value_ptr(render_pos));
+			
 			glUniform3fv(colorLocation, 1, glm::value_ptr(particles.colors[i]));
 			glUniform1f(radiusLocation, particles.radii[i]);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-			{
-				glm::vec2 true_vel(particles.velocities[i].x / aspect_ratio, particles.velocities[i].y);
-
-				const float velocity_sq = glm::dot(true_vel, true_vel);
-				current_total_kinetic_energy += particles.mass[i] * velocity_sq / 2.0f;
-
-				const glm::vec2 linear_momentum = true_vel * particles.mass[i];
-				current_total_momentum += linear_momentum;
-			}
+			const float velocity_sq = glm::dot(particles.velocities[i], particles.velocities[i]);
+			current_total_kinetic_energy += particles.mass[i] * velocity_sq / 2.0f;
+			current_total_momentum += particles.velocities[i] * particles.mass[i];
 		}
 
 		total_kinetic_energy = current_total_kinetic_energy;
