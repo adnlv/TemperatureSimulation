@@ -25,6 +25,21 @@ FetchContent_MakeAvailable(glm)
 FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.17.0)
 FetchContent_MakeAvailable(spdlog)
 
+FetchContent_Declare(imgui GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG v1.92.8-docking)
+FetchContent_MakeAvailable(imgui)
+
+add_library(imgui STATIC
+    "${imgui_SOURCE_DIR}/imgui.cpp"
+    "${imgui_SOURCE_DIR}/imgui_demo.cpp"
+    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp"
+)
+target_include_directories(imgui PUBLIC "${imgui_SOURCE_DIR}" "${imgui_SOURCE_DIR}/backends")
+target_link_libraries(imgui PUBLIC glfw glad_gl_core_46)
+
 add_executable(TemperatureSimulation "src/Application.cpp" "src/Log.h" "src/Shader.h" "src/Buffers.h" "src/Timer.h")
-target_link_libraries(TemperatureSimulation PRIVATE glfw glad_gl_core_46 glm::glm spdlog::spdlog)
+target_link_libraries(TemperatureSimulation PRIVATE glfw glad_gl_core_46 glm::glm spdlog::spdlog imgui)
 target_compile_definitions(TemperatureSimulation PRIVATE DEV_ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets")

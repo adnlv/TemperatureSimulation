@@ -8,6 +8,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 #include "Log.h"
 #include "Shader.h"
@@ -34,6 +37,9 @@ private:
 
 	void GLSetDebugOutputCallback();
 
+	void imgui_init() noexcept;
+	void imgui_shutdown() noexcept;
+
 	void Update();
 };
 
@@ -48,12 +54,14 @@ Application::Application()
 	GLFWSetKeyCallback();
 
 	GLSetDebugOutputCallback();
+	imgui_init();
 
 	Update();
 }
 
 Application::~Application()
 {
+	imgui_shutdown();
 	GLFWDestroyWindow();
 	GLFWTerminate();
 }
@@ -81,7 +89,10 @@ void Application::GLFWTerminate() noexcept
 
 void Application::GLFWCreateWindow()
 {
-	m_Window = glfwCreateWindow(960, 540, "Temperature Simulation", nullptr, nullptr);
+	auto scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+	auto w = static_cast<int>(960 * scale);
+	auto h = static_cast<int>(540 * scale);
+	m_Window = glfwCreateWindow(w, h, "Temperature Simulation", nullptr, nullptr);
 	if (m_Window == nullptr)
 	{
 		throw std::runtime_error("GLFW: Window creation failed");
@@ -248,6 +259,31 @@ void Application::GLSetDebugOutputCallback()
 	}
 }
 
+void Application::imgui_init() noexcept
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+	ImGui::StyleColorsDark();
+	
+	float scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(scale);
+	style.FontScaleDpi = scale;
+
+	ImGui_ImplGlfw_InitForOpenGL(m_Window, true);
+	ImGui_ImplOpenGL3_Init("#version 460");
+}
+
+void Application::imgui_shutdown() noexcept
+{
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+}
+
 void Application::Update()
 {
 	struct Particle
@@ -322,9 +358,17 @@ void Application::Update()
 	GLint colorLocation = program.GetUniformLocation("uColor");
 
 	Timer timer;
+	bool show_demo_window = true;
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		timer.start_frame();
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		if (show_demo_window)
+			ImGui::ShowDemoWindow(&show_demo_window);
 
 		int framebufferWidth, framebufferHeight;
 		glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
@@ -407,6 +451,9 @@ void Application::Update()
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(m_Window);
 		glfwPollEvents();
