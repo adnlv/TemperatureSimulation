@@ -299,7 +299,7 @@ void Application::Update()
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> vel_dis(-0.1f, 0.1f);
+		std::uniform_real_distribution<float> vel_dis(-0.01f, 0.01f);
 		std::uniform_real_distribution<float> pos_dis(-0.5f, 0.5f);
 		std::uniform_real_distribution<float> mass_dis(0.005f, 0.005f);
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
