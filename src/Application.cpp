@@ -391,7 +391,11 @@ void Application::Update()
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		timer.start_frame();
-		float dt = timer.dt() * time_scale;
+
+		// Multiply by a small time scale (e.g. 2e-4) so molecules don't cross the box in 1 frame
+		constexpr float physical_time_scale = 2.0e-4f;
+		
+		float dt = timer.dt() * time_scale * physical_time_scale;
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -427,10 +431,10 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Physical Properties", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Temperature: %.10f (K)", temperature);
-				ImGui::Text("Average kinetic energy: %.10f (J/particle)", avg_kinetic_energy);
-				ImGui::Text("Total kinetic energy: %.10f (J)", total_kinetic_energy);
-				ImGui::Text("Total momentum: (x: %.10f; y: %.10f) (kg * m/s)", total_momentum.x, total_momentum.y);
+				ImGui::Text("Temperature: %.2f (K)", temperature);
+				ImGui::Text("Average kinetic energy: %.4e (J/particle)", avg_kinetic_energy);
+				ImGui::Text("Total kinetic energy: %.4e (J)", total_kinetic_energy);
+				ImGui::Text("Total momentum: (x: %.4e; y: %.4e) (kg * m/s)", total_momentum.x, total_momentum.y);
 			}
 
 			ImGui::End();
