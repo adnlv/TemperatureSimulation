@@ -307,9 +307,9 @@ public:
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> mass_dis(0.001f, 0.005f);
+		std::uniform_real_distribution<float> mass_dis(6.0e-26f, 7.0e-26f); // Mass of an Argon atom (~6.6e-26 kg)
 		std::uniform_real_distribution<float> pos_dis(-0.5f, 0.5f);
-		std::uniform_real_distribution<float> vel_dis(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> vel_dis(-400.0f, 400.0f); // m/s
 		std::uniform_real_distribution<float> color_dis(0.2f, 1.0f);
 
 		for (size_t i = 0; i < num_max_particles; ++i)
@@ -382,6 +382,7 @@ void Application::Update()
 
 	float time_scale = 1.0f;
 
+	float temperature{ 0.0f };
 	float avg_kinetic_energy = 0.0f;
 	float total_kinetic_energy = 0.0f;
 	glm::vec2 total_momentum{ 0 };
@@ -426,6 +427,7 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Physical Properties", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				ImGui::Text("Temperature: %.10f (K)", temperature);
 				ImGui::Text("Average kinetic energy: %.10f (J/particle)", avg_kinetic_energy);
 				ImGui::Text("Total kinetic energy: %.10f (J)", total_kinetic_energy);
 				ImGui::Text("Total momentum: (x: %.10f; y: %.10f) (kg * m/s)", total_momentum.x, total_momentum.y);
@@ -520,6 +522,10 @@ void Application::Update()
 			? total_kinetic_energy / particles.num_active_particles
 			: 0.0f;
 		total_momentum = current_total_momentum;
+
+		// Boltzmann constant
+		constexpr float k_B = 1.380649e-23f;
+		temperature = avg_kinetic_energy / k_B;
 
 		radius_vbo.SubData(0, particles.num_active_particles * sizeof(particles.radii.at(0)), particles.radii.data());
 		center_vbo.SubData(0, particles.num_active_particles * sizeof(particles.positions.at(0)), particles.positions.data());
