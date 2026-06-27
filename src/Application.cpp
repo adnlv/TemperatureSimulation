@@ -382,7 +382,7 @@ void Application::Update()
 
 	float time_scale = 1.0f;
 
-	float temperature = 0.0f;
+	float avg_kinetic_energy = 0.0f;
 	float total_kinetic_energy = 0.0f;
 	glm::vec2 total_momentum{ 0 };
 
@@ -426,9 +426,9 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Physical Properties", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Temperature (Kelvins): %.10f", temperature);
-				ImGui::Text("Total kinetic energy (Joules): %.10f", total_kinetic_energy);
-				ImGui::Text("Total momentum (kg * m/s): (x: %.10f; y: %.10f)", total_momentum.x, total_momentum.y);
+				ImGui::Text("Average kinetic energy: %.10f (J/particle)", avg_kinetic_energy);
+				ImGui::Text("Total kinetic energy: %.10f (J)", total_kinetic_energy);
+				ImGui::Text("Total momentum: (x: %.10f; y: %.10f) (kg * m/s)", total_momentum.x, total_momentum.y);
 			}
 
 			ImGui::End();
@@ -516,7 +516,9 @@ void Application::Update()
 		}
 
 		total_kinetic_energy = current_total_kinetic_energy;
-		temperature = particles.num_active_particles != 0 ? total_kinetic_energy / particles.num_active_particles : 0.0f;
+		avg_kinetic_energy = particles.num_active_particles != 0
+			? total_kinetic_energy / particles.num_active_particles
+			: 0.0f;
 		total_momentum = current_total_momentum;
 
 		radius_vbo.SubData(0, particles.num_active_particles * sizeof(particles.radii.at(0)), particles.radii.data());
