@@ -453,11 +453,9 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolution_location, 1, glm::value_ptr(resolution));
 
-		glm::vec2 current_total_momentum{ 0 };
-		float current_total_kinetic_energy = 0.0f;
-
 		const float time = Timer::time();
 		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
+		std::vector<glm::vec2> pending_impulses(particles.num_active_particles, glm::vec2(0.0f));
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
 			auto& p1{ particles.positions[i] };
@@ -487,11 +485,24 @@ void Application::Update()
 				const auto dist_sq = dist * dist;
 				const auto total_mass = m1 + m2;
 				const auto impulse_scalar = dot_prod / dist_sq;
+				const glm::vec2 impulse = impulse_scalar * pos_diff;
 
-				v1 -= (2.0f * m2 / total_mass) * impulse_scalar * pos_diff;
-				v2 += (2.0f * m1 / total_mass) * impulse_scalar * pos_diff;
+				pending_impulses[i] -= (2.0f * m2 / total_mass) * impulse;
+				pending_impulses[j] += (2.0f * m1 / total_mass) * impulse;
 			}
+		}
 
+		glm::vec2 current_total_momentum{ 0 };
+		float current_total_kinetic_energy = 0.0f;
+
+		for (size_t i = 0; i < particles.num_active_particles; ++i)
+		{
+			auto& p1{ particles.positions[i] };
+			auto& v1{ particles.velocities[i] };
+			auto& r1{ particles.radii[i] };
+			auto& m1{ particles.mass[i] };
+
+			v1 += pending_impulses[i];
 			p1 += v1 * dt;
 
 			const glm::vec2 limit(1.0f / aspect_ratio, 1.0f);
@@ -505,6 +516,7 @@ void Application::Update()
 				p1.x = limit.x - r1;
 				v1.x *= -1.0f;
 			}
+
 			if (p1.y - r1 < -limit.y)
 			{
 				p1.y = -limit.y + r1;
@@ -515,7 +527,7 @@ void Application::Update()
 				p1.y = limit.y - r1;
 				v1.y *= -1.0f;
 			}
-
+			
 			const float velocity_sq = glm::dot(v1, v1);
 			current_total_kinetic_energy += m1 * velocity_sq / 2.0f;
 			current_total_momentum += v1 * m1;
