@@ -490,9 +490,10 @@ void Application::Update()
 
 				const auto pos_diff = p1 - p2;
 				const auto min_dist = r1 + r2;
-				const auto dist = glm::length(pos_diff);
+				const auto min_dist_sq = min_dist * min_dist;
+				const auto dist_sq = glm::dot(pos_diff, pos_diff);
 
-				if (dist > min_dist || dist == 0.0f)
+				if (dist_sq > min_dist_sq || dist_sq == 0.0f)
 					continue;
 
 				const auto vel_diff = v1 - v2;
@@ -500,7 +501,6 @@ void Application::Update()
 				if (dot_prod >= 0.0f)
 					continue;
 
-				const auto dist_sq = dist * dist;
 				const auto total_mass = m1 + m2;
 				const auto impulse_scalar = dot_prod / dist_sq;
 				const glm::vec2 impulse = impulse_scalar * pos_diff;
