@@ -338,7 +338,7 @@ public:
 private:
 	// Boltzmann constant
 	static constexpr float k_B{ 1.380649e-23f };
-	
+
 	static constexpr float k_C_ABS_ZERO{ -273.15f };
 	static constexpr float k_F_ABS_ZERO{ -459.67f };
 	static constexpr float k_K_TO_F_RATIO{ 1.8f };
@@ -361,28 +361,28 @@ void Application::Update()
 		1, 2, 3
 	};
 
-	VertexArray vertexArray;
+	VertexArray vao;
 
 	Buffer vbo(BufferType::ArrayBuffer, vertices.size() * sizeof(vertices.at(0)), vertices.data(), BufferUsage::StaticDraw);
-	vertexArray.SetAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
-	vertexArray.EnableAttribArray(2);
+	vao.SetAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
+	vao.EnableAttribArray(2);
 
 	Buffer radius_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.radii.at(0)), nullptr, BufferUsage::DynamicDraw);
-	vertexArray.SetAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(particles.radii.at(0)), nullptr);
-	vertexArray.EnableAttribArray(0);
-	vertexArray.SetAttribDivisor(0, 1);
+	vao.SetAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(particles.radii.at(0)), nullptr);
+	vao.EnableAttribArray(0);
+	vao.SetAttribDivisor(0, 1);
 
 	Buffer center_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.positions.at(0)), nullptr, BufferUsage::DynamicDraw);
-	vertexArray.SetAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(particles.positions.at(0)), nullptr);
-	vertexArray.EnableAttribArray(1);
-	vertexArray.SetAttribDivisor(1, 1);
+	vao.SetAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(particles.positions.at(0)), nullptr);
+	vao.EnableAttribArray(1);
+	vao.SetAttribDivisor(1, 1);
 
 	Buffer color_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.colors.at(0)), nullptr, BufferUsage::DynamicDraw);
-	vertexArray.SetAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(particles.colors.at(0)), nullptr);
-	vertexArray.EnableAttribArray(3);
-	vertexArray.SetAttribDivisor(3, 1);
+	vao.SetAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(particles.colors.at(0)), nullptr);
+	vao.EnableAttribArray(3);
+	vao.SetAttribDivisor(3, 1);
 
-	Buffer elementArray(BufferType::ElementArrayBuffer, indices.size() * sizeof(indices.at(0)), indices.data(), BufferUsage::StaticDraw);
+	Buffer ebo(BufferType::ElementArrayBuffer, indices.size() * sizeof(indices.at(0)), indices.data(), BufferUsage::StaticDraw);
 
 	ShaderProgram program = []()
 		{
@@ -466,8 +466,8 @@ void Application::Update()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		vertexArray.Bind();
-		elementArray.Bind();
+		vao.Bind();
+		ebo.Bind();
 		program.Use();
 
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
