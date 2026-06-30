@@ -326,6 +326,26 @@ public:
 	~ParticleBuffer() = default;
 };
 
+class Temperature
+{
+public:
+	[[nodiscard]] float kelvin() const noexcept { return m_kelvin; }
+	[[nodiscard]] float celsius() const noexcept { return m_kelvin + k_C_ABS_ZERO; }
+	[[nodiscard]] float fahrenheit() const noexcept { return m_kelvin * k_K_TO_F_RATIO + k_F_ABS_ZERO; }
+
+	void update_from_kinetic_energy(float energy) noexcept { m_kelvin = energy / k_B; }
+
+private:
+	// Boltzmann constant
+	static constexpr float k_B{ 1.380649e-23f };
+	
+	static constexpr float k_C_ABS_ZERO{ -273.15f };
+	static constexpr float k_F_ABS_ZERO{ -459.67f };
+	static constexpr float k_K_TO_F_RATIO{ 1.8f };
+
+	float m_kelvin{ 0.0f };
+};
+
 void Application::Update()
 {
 	ParticleBuffer particles;
@@ -381,11 +401,11 @@ void Application::Update()
 	glfwSwapInterval(vsync_enabled);
 
 	float time_scale = 1.0f;
-
-	float temperature{ 0.0f };
 	float avg_kinetic_energy = 0.0f;
 	float total_kinetic_energy = 0.0f;
 	glm::vec2 total_momentum{ 0 };
+
+	Temperature temperature;
 
 	Timer timer;
 	while (!glfwWindowShouldClose(m_Window))
@@ -394,7 +414,7 @@ void Application::Update()
 
 		// Multiply by a small time scale (e.g. 2e-4) so molecules don't cross the box in 1 frame
 		constexpr float physical_time_scale = 2.0e-4f;
-		
+
 		float dt = timer.dt() * time_scale * physical_time_scale;
 
 		ImGui_ImplOpenGL3_NewFrame();
@@ -431,7 +451,7 @@ void Application::Update()
 
 			if (ImGui::CollapsingHeader("Physical Properties", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Temperature: %.2f (K)", temperature);
+				ImGui::Text("Temperature: %.2f (K), %.2f (C), %.2f (F)", temperature.kelvin(), temperature.celsius(), temperature.fahrenheit());
 				ImGui::Text("Average kinetic energy: %.4e (J/particle)", avg_kinetic_energy);
 				ImGui::Text("Total kinetic energy: %.4e (J)", total_kinetic_energy);
 				ImGui::Text("Total momentum: (x: %.4e; y: %.4e) (kg * m/s)", total_momentum.x, total_momentum.y);
@@ -527,7 +547,7 @@ void Application::Update()
 				p1.y = limit.y - r1;
 				v1.y *= -1.0f;
 			}
-			
+
 			const float velocity_sq = glm::dot(v1, v1);
 			current_total_kinetic_energy += m1 * velocity_sq / 2.0f;
 			current_total_momentum += v1 * m1;
@@ -539,9 +559,7 @@ void Application::Update()
 			: 0.0f;
 		total_momentum = current_total_momentum;
 
-		// Boltzmann constant
-		constexpr float k_B = 1.380649e-23f;
-		temperature = avg_kinetic_energy / k_B;
+		temperature.update_from_kinetic_energy(avg_kinetic_energy);
 
 		radius_vbo.SubData(0, particles.num_active_particles * sizeof(particles.radii.at(0)), particles.radii.data());
 		center_vbo.SubData(0, particles.num_active_particles * sizeof(particles.positions.at(0)), particles.positions.data());
