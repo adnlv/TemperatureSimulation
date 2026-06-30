@@ -473,8 +473,6 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolution_location, 1, glm::value_ptr(resolution));
 
-		const float time = Timer::time();
-		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
 		std::vector<glm::vec2> pending_impulses(particles.num_active_particles, glm::vec2(0.0f));
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
@@ -515,6 +513,7 @@ void Application::Update()
 		glm::vec2 current_total_momentum{ 0 };
 		float current_total_kinetic_energy = 0.0f;
 
+		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
 			auto& p1{ particles.positions[i] };
