@@ -367,7 +367,7 @@ void Application::Update()
 	vao.SetAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices.at(0)), nullptr);
 	vao.EnableAttribArray(2);
 
-	Buffer radius_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.radii.at(0)), nullptr, BufferUsage::DynamicDraw);
+	Buffer radius_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.radii.at(0)), particles.radii.data(), BufferUsage::StaticDraw);
 	vao.SetAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(particles.radii.at(0)), nullptr);
 	vao.EnableAttribArray(0);
 	vao.SetAttribDivisor(0, 1);
@@ -377,7 +377,7 @@ void Application::Update()
 	vao.EnableAttribArray(1);
 	vao.SetAttribDivisor(1, 1);
 
-	Buffer color_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.colors.at(0)), nullptr, BufferUsage::DynamicDraw);
+	Buffer color_vbo(BufferType::ArrayBuffer, particles.num_max_particles * sizeof(particles.colors.at(0)), particles.colors.data(), BufferUsage::StaticDraw);
 	vao.SetAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(particles.colors.at(0)), nullptr);
 	vao.EnableAttribArray(3);
 	vao.SetAttribDivisor(3, 1);
@@ -560,10 +560,7 @@ void Application::Update()
 
 		temperature.update_from_kinetic_energy(avg_kinetic_energy);
 
-		radius_vbo.SubData(0, particles.num_active_particles * sizeof(particles.radii.at(0)), particles.radii.data());
 		center_vbo.SubData(0, particles.num_active_particles * sizeof(particles.positions.at(0)), particles.positions.data());
-		color_vbo.SubData(0, particles.num_active_particles * sizeof(particles.colors.at(0)), particles.colors.data());
-
 		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, particles.num_active_particles);
 
 		ImGui::Render();
