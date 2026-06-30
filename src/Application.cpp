@@ -5,6 +5,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include <algorithm>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -408,6 +409,10 @@ void Application::Update()
 	std::vector<glm::vec2> pending_impulses;
 	pending_impulses.reserve(particles.num_max_particles);
 
+	std::vector<int> cell_head;
+	std::vector<int> particle_next;
+	particle_next.resize(particles.num_max_particles);
+
 	Temperature temperature;
 
 	Timer timer;
@@ -476,16 +481,37 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolution_location, 1, glm::value_ptr(resolution));
 
+		// ----------------------------------------------------------------------
 		pending_impulses.assign(particles.num_active_particles, glm::vec2(0.0f));
+		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
+		const glm::vec2 limit(1.0f / aspect_ratio, 1.0f);
+
+		constexpr float cell_size = 0.016f;
+		const int cols = static_cast<int>(std::ceil(2.0f * limit.x / cell_size));
+		const int rows = static_cast<int>(std::ceil(2.0f * limit.y / cell_size));
+
+		// Reset grid heads (zero heap allocations if cols*rows <= capacity)
+		cell_head.assign(static_cast<std::vector<int, std::allocator<int>>::size_type>(cols) * rows, -1);
+
+		// 2. Populate the linked cell list O(N)
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
-			const auto& p1{ particles.positions[i] };
-			const auto& v1{ particles.velocities[i] };
-			const auto& r1{ particles.radii[i] };
-			const auto& m1{ particles.mass[i] };
+			const auto& p{ particles.positions[i] };
+			int gx = std::clamp(static_cast<int>((p.x + limit.x) / cell_size), 0, cols - 1);
+			int gy = std::clamp(static_cast<int>((p.y + limit.y) / cell_size), 0, rows - 1);
+			int cell_idx = gy * cols + gx;
+			particle_next[i] = cell_head[cell_idx];
+			cell_head[cell_idx] = static_cast<int>(i);
+		}
 
-			for (size_t j = i + 1; j < particles.num_active_particles; ++j)
+		// Helper lambda to check and resolve collision between particles i and j
+		auto check_collision = [&](size_t i, size_t j)
 			{
+				const auto& p1{ particles.positions[i] };
+				const auto& v1{ particles.velocities[i] };
+				const auto& r1{ particles.radii[i] };
+				const auto& m1{ particles.mass[i] };
+
 				const auto& p2{ particles.positions[j] };
 				const auto& v2{ particles.velocities[j] };
 				const auto& r2{ particles.radii[j] };
@@ -495,14 +521,13 @@ void Application::Update()
 				const auto min_dist = r1 + r2;
 				const auto min_dist_sq = min_dist * min_dist;
 				const auto dist_sq = glm::dot(pos_diff, pos_diff);
-
 				if (dist_sq > min_dist_sq || dist_sq == 0.0f)
-					continue;
+					return;
 
 				const auto vel_diff = v1 - v2;
 				const auto dot_prod = glm::dot(vel_diff, pos_diff);
 				if (dot_prod >= 0.0f)
-					continue;
+					return;
 
 				const auto total_mass = m1 + m2;
 				const auto impulse_scalar = dot_prod / dist_sq;
@@ -510,13 +535,57 @@ void Application::Update()
 
 				pending_impulses[i] -= (2.0f * m2 / total_mass) * impulse;
 				pending_impulses[j] += (2.0f * m1 / total_mass) * impulse;
+			};
+
+		// 3. Traverse grid cells and check collisions O(N)
+		for (int gy = 0; gy < rows; ++gy)
+		{
+			for (int gx = 0; gx < cols; ++gx)
+			{
+				int cell_idx = gy * cols + gx;
+				int i = cell_head[cell_idx];
+				while (i != -1)
+				{
+					// Check against subsequent particles in the same cell
+					int j = particle_next[i];
+					while (j != -1)
+					{
+						check_collision(i, j);
+						j = particle_next[j];
+					}
+
+					// Check against particles in the 4 forward neighboring cells (half-shell)
+					constexpr int neighbor_offsets[4][2] = {
+						{ 1,  0}, // Right
+						{-1,  1}, // Bottom-Left
+						{ 0,  1}, // Bottom
+						{ 1,  1}  // Bottom-Right
+					};
+
+					for (const auto& offset : neighbor_offsets)
+					{
+						int nx = gx + offset[0];
+						int ny = gy + offset[1];
+						if (nx >= 0 && nx < cols && ny >= 0 && ny < rows)
+						{
+							int neighbor_cell_idx = ny * cols + nx;
+							int nj = cell_head[neighbor_cell_idx];
+							while (nj != -1)
+							{
+								check_collision(i, nj);
+								nj = particle_next[nj];
+							}
+						}
+					}
+
+					i = particle_next[i];
+				}
 			}
 		}
 
 		glm::vec2 current_total_momentum{ 0 };
 		float current_total_kinetic_energy = 0.0f;
 
-		const float aspect_ratio = static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth);
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
 			auto& p1{ particles.positions[i] };
@@ -527,7 +596,6 @@ void Application::Update()
 			v1 += pending_impulses[i];
 			p1 += v1 * dt;
 
-			const glm::vec2 limit(1.0f / aspect_ratio, 1.0f);
 			if (p1.x - r1 < -limit.x)
 			{
 				p1.x = -limit.x + r1;
@@ -562,6 +630,7 @@ void Application::Update()
 		total_momentum = current_total_momentum;
 
 		temperature.update_from_kinetic_energy(avg_kinetic_energy);
+		// --------------------------------------------------------
 
 		center_vbo.SubData(0, particles.num_active_particles * sizeof(particles.positions.at(0)), particles.positions.data());
 		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, particles.num_active_particles);
