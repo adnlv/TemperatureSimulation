@@ -405,6 +405,9 @@ void Application::Update()
 	float total_kinetic_energy = 0.0f;
 	glm::vec2 total_momentum{ 0 };
 
+	std::vector<glm::vec2> pending_impulses;
+	pending_impulses.reserve(particles.num_max_particles);
+
 	Temperature temperature;
 
 	Timer timer;
@@ -473,7 +476,7 @@ void Application::Update()
 		glm::vec2 resolution(framebufferWidth, framebufferHeight);
 		glUniform2fv(resolution_location, 1, glm::value_ptr(resolution));
 
-		std::vector<glm::vec2> pending_impulses(particles.num_active_particles, glm::vec2(0.0f));
+		pending_impulses.assign(particles.num_active_particles, glm::vec2(0.0f));
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
 			const auto& p1{ particles.positions[i] };
