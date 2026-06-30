@@ -476,17 +476,17 @@ void Application::Update()
 		std::vector<glm::vec2> pending_impulses(particles.num_active_particles, glm::vec2(0.0f));
 		for (size_t i = 0; i < particles.num_active_particles; ++i)
 		{
-			auto& p1{ particles.positions[i] };
-			auto& v1{ particles.velocities[i] };
-			auto& r1{ particles.radii[i] };
-			auto& m1{ particles.mass[i] };
+			const auto& p1{ particles.positions[i] };
+			const auto& v1{ particles.velocities[i] };
+			const auto& r1{ particles.radii[i] };
+			const auto& m1{ particles.mass[i] };
 
 			for (size_t j = i + 1; j < particles.num_active_particles; ++j)
 			{
-				auto& p2{ particles.positions[j] };
-				auto& v2{ particles.velocities[j] };
-				auto& r2{ particles.radii[j] };
-				auto& m2{ particles.mass[j] };
+				const auto& p2{ particles.positions[j] };
+				const auto& v2{ particles.velocities[j] };
+				const auto& r2{ particles.radii[j] };
+				const auto& m2{ particles.mass[j] };
 
 				const auto pos_diff = p1 - p2;
 				const auto min_dist = r1 + r2;
